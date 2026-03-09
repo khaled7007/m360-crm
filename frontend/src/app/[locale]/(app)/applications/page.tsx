@@ -10,8 +10,11 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { DocumentList } from "@/components/ui/DocumentList";
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import { toast } from "sonner";
+import { StatusSettingsModal } from "@/components/ui/StatusSettingsModal";
+import { useStatusConfig } from "@/lib/status-config-context";
+import { api } from "@/lib/api";
 
 interface Organization {
   id: string;
@@ -62,6 +65,7 @@ export default function ApplicationsPage() {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStatusSettingsOpen, setIsStatusSettingsOpen] = useState(false);
   const [expandedApplicationId, setExpandedApplicationId] = useState<
     string | null
   >(null);
@@ -199,13 +203,22 @@ export default function ApplicationsPage() {
           title={t("title")}
           description={t("subtitle")}
         />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-        >
-          <Plus size={20} />
-          {t("newApp")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsStatusSettingsOpen(true)}
+            className="p-2 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-50 transition"
+            title="إعدادات الوسوم"
+          >
+            <Settings2 size={18} />
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+          >
+            <Plus size={20} />
+            {t("newApp")}
+          </button>
+        </div>
       </div>
 
       {isLoadingApplications && (
@@ -252,9 +265,14 @@ export default function ApplicationsPage() {
               application={applications.find(
                 (app) => app.id === expandedApplicationId
               )!}
+              onStatusChanged={refetchApplications}
             />
           )}
         </div>
+      )}
+
+      {isStatusSettingsOpen && (
+        <StatusSettingsModal onClose={() => setIsStatusSettingsOpen(false)} />
       )}
 
       <Modal
@@ -400,16 +418,60 @@ export default function ApplicationsPage() {
   );
 }
 
-function ApplicationDetails({ application }: { application: Application }) {
+const APP_STATUSES = [
+  "draft", "submitted", "pre_approved", "documents_collected",
+  "credit_assessment", "committee_review", "approved", "rejected", "disbursed",
+] as const;
+
+function ApplicationDetails({ application, onStatusChanged }: { application: Application; onStatusChanged: () => void }) {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
+  const { statusConfig } = useStatusConfig();
   const [docRefreshKey, setDocRefreshKey] = useState(0);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === application.status) return;
+    setIsChangingStatus(true);
+    try {
+      const token = localStorage.getItem("m360_token") || "";
+      await api(`/applications/${application.id}`, {
+        method: "PUT",
+        body: { status: newStatus },
+        token,
+      });
+      toast.success("تم تحديث الحالة");
+      onStatusChanged();
+    } catch {
+      toast.error("فشل تحديث الحالة");
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">
-        {application.reference_number}
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">{application.reference_number}</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-stone-500">تغيير الحالة:</span>
+          <select
+            value={application.status}
+            disabled={isChangingStatus}
+            onChange={(e) => handleStatusChange(e.target.value)}
+            className="border border-stone-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50"
+          >
+            {APP_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {statusConfig[s]?.label || s}
+              </option>
+            ))}
+          </select>
+          {isChangingStatus && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div>

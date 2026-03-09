@@ -6,6 +6,7 @@ import { useLocale } from "next-intl";
 import { useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Toaster } from "sonner";
+import { StatusConfigProvider } from "@/lib/status-config-context";
 
 /** Routes accessible without a backend/auth (state-only pages). */
 const PUBLIC_PATHS = ["/pipeline"];
@@ -35,12 +36,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user && !isPublic) return null;
 
   return (
-    <div className="flex h-screen bg-stone-50">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">{children}</div>
-      </main>
-      <Toaster position="top-right" richColors />
-    </div>
+    <StatusConfigProvider>
+      <div className="flex h-screen bg-stone-50">
+        <Sidebar />
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">{children}</div>
+        </main>
+        <Toaster position="top-right" richColors />
+      </div>
+    </StatusConfigProvider>
   );
 }

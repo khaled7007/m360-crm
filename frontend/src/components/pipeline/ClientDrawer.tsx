@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Client } from "./stageConfig";
 import { usePipelineConfig } from "./pipeline-config-context";
+import { useStatusConfig } from "@/lib/status-config-context";
 import { X } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -19,7 +20,8 @@ interface ClientDrawerProps {
 }
 
 export function ClientDrawer({ client, onClose, onUpdate }: ClientDrawerProps) {
-  const { config: { stages, statusConfig } } = usePipelineConfig();
+  const { config: { stages } } = usePipelineConfig();
+  const { statusConfig } = useStatusConfig();
   const [notes, setNotes] = useState(client.notes ?? "");
   const [saved, setSaved] = useState(false);
 
@@ -30,7 +32,7 @@ export function ClientDrawer({ client, onClose, onUpdate }: ClientDrawerProps) {
   }, [client.id]);
 
   const stage = stages.find((s) => s.id === client.stage);
-  const statusCfg = statusConfig[client.status] ?? statusConfig["cold"] ?? { label: client.status, color: "#6B7280", bg: "#F3F4F6" };
+  const statusCfg = statusConfig[client.status] ?? { label: client.status.replace(/_/g, " "), color: "#6B7280", bg: "#F3F4F6" };
 
   const handleSave = () => {
     onUpdate({ ...client, notes });

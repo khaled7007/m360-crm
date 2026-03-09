@@ -2,7 +2,7 @@
 
 import { Draggable } from "@hello-pangea/dnd";
 import { Client } from "./stageConfig";
-import { usePipelineConfig } from "./pipeline-config-context";
+import { useStatusConfig } from "@/lib/status-config-context";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("ar-SA", {
@@ -19,8 +19,8 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, index, isHighlighted, onClick }: ClientCardProps) {
-  const { config: { statusConfig } } = usePipelineConfig();
-  const statusCfg = statusConfig[client.status] ?? statusConfig["cold"] ?? { label: client.status, color: "#6B7280", bg: "#F3F4F6" };
+  const { statusConfig } = useStatusConfig();
+  const statusCfg = statusConfig[client.status] ?? { label: client.status.replace(/_/g, " "), color: "#6B7280", bg: "#F3F4F6" };
   const initials = client.assignee ? client.assignee.slice(0, 1) : "؟";
 
   return (

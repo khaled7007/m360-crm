@@ -26,7 +26,6 @@ function saveConfig(cfg: PipelineConfig) {
 interface PipelineConfigContextValue {
   config: PipelineConfig;
   updateStage: (id: string, patch: Partial<Stage>) => void;
-  updateStatus: (key: string, patch: Partial<StatusConfig>) => void;
   reset: () => void;
 }
 
@@ -51,24 +50,13 @@ export function PipelineConfigProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const updateStatus = useCallback((key: string, patch: Partial<StatusConfig>) => {
-    setConfig((prev) => {
-      const next = {
-        ...prev,
-        statusConfig: { ...prev.statusConfig, [key]: { ...prev.statusConfig[key], ...patch } },
-      };
-      saveConfig(next);
-      return next;
-    });
-  }, []);
-
   const reset = useCallback(() => {
     const defaults: PipelineConfig = { stages: STAGES, statusConfig: STATUS_CONFIG };
     update(defaults);
   }, [update]);
 
   return (
-    <PipelineConfigContext.Provider value={{ config, updateStage, updateStatus, reset }}>
+    <PipelineConfigContext.Provider value={{ config, updateStage, reset }}>
       {children}
     </PipelineConfigContext.Provider>
   );
