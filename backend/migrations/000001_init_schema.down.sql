@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS leads;
+DROP TABLE IF EXISTS contacts;
+DROP TABLE IF EXISTS organizations;
+DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS delinquency_status;
+DROP TYPE IF EXISTS facility_status;
+DROP TYPE IF EXISTS application_status;
+DROP TYPE IF EXISTS lead_status;
+DROP TYPE IF EXISTS user_role;

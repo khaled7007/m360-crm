@@ -1,0 +1,66 @@
+name: Deploy to Alibaba Cloud Saudi
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy code to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USER }}
+          key: ${{ secrets.ECS_SSH_KEY }}
+          source: "."
+          target: /opt/m360/repo
+          rm: true
+          overwrite: true
+
+      - name: Build and deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USER }}
+          key: ${{ secrets.ECS_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd /opt/m360/repo
+
+            # Create .env if it doesn't exist
+            if [ ! -f /opt/m360/.env ]; then
+              cat > /opt/m360/.env << 'ENVEOF'
+            DB_USER=m360
+            DB_PASSWORD=changeme_in_production
+            DB_NAME=m360
+            REDIS_PASSWORD=changeme_in_production
+            JWT_SECRET=changeme_in_production
+            API_URL=http://backend:8080
+            ENVEOF
+              echo "WARNING: Created default .env — update passwords!"
+            fi
+
+            # Stop any containers using our ports
+            docker ps -q --filter "publish=8080" --filter "publish=3000" --filter "publish=80" | xargs -r docker stop || true
+            docker ps -aq --filter "publish=8080" --filter "publish=3000" --filter "publish=80" | xargs -r docker rm || true
+            docker compose -f docker-compose.prod.yml --env-file /opt/m360/.env down --remove-orphans || true
+            docker compose -f docker-compose.prod.yml --env-file /opt/m360/.env build
+            docker compose -f docker-compose.prod.yml --env-file /opt/m360/.env up -d
+
+            # Run database migrations
+            echo "Running database migrations..."
+            docker compose -f docker-compose.prod.yml --env-file /opt/m360/.env exec -T backend /app/server migrate up 2>/dev/null || \
+              docker compose -f docker-compose.prod.yml --env-file /opt/m360/.env run --rm backend sh -c "cd /app && go run ./cmd/migrate up" 2>/dev/null || \
+              echo "WARNING: Migration step skipped (run manually if needed)"
+
+            # Cleanup
+            docker image prune -f
+
+            echo "Deployed successfully"

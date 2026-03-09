@@ -1,0 +1,174 @@
+name: Smart Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'feat/**']
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      backend_packages: ${{ steps.go-packages.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      - name: Find affected Go packages
+        id: go-packages
+        if: steps.changes.outputs.backend == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "packages=./..." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Get changed Go files relative to backend/
+          CHANGED=$(git diff --name-only "$BASE_SHA" HEAD -- 'backend/' | grep '\.go$' || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "packages=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Extract unique package directories
+          PKGS=$(echo "$CHANGED" | sed 's|backend/||' | xargs -I{} dirname {} | sort -u | sed 's|^|./|' | tr '\n' ' ')
+
+          # If cmd/ or platform/ changed, test everything (core infrastructure)
+          if echo "$PKGS" | grep -qE '\./cmd/|\./internal/platform/'; then
+            echo "packages=./..." >> "$GITHUB_OUTPUT"
+          else
+            echo "packages=$PKGS" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true' && needs.detect-changes.outputs.backend_packages != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Build
+        working-directory: backend
+        run: go build ./...
+
+      - name: Test affected packages
+        working-directory: backend
+        env:
+          TEST_PACKAGES: ${{ needs.detect-changes.outputs.backend_packages }}
+        run: |
+          echo "Testing packages: $TEST_PACKAGES"
+          go test -race -count=1 -timeout 5m $TEST_PACKAGES
+
+      - name: Vet
+        working-directory: backend
+        run: go vet ./...
+
+  frontend-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Find changed test files
+        id: test-files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "args=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" HEAD -- 'frontend/src/' | grep -E '\.(ts|tsx)$' || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "args=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if test files changed — run those directly
+          TEST_FILES=$(echo "$CHANGED" | grep -E '\.test\.(ts|tsx)$' | sed 's|frontend/||' || true)
+
+          # Check if source files changed — find related test files
+          SRC_FILES=$(echo "$CHANGED" | grep -vE '\.test\.(ts|tsx)$' || true)
+          RELATED_TESTS=""
+          if [ -n "$SRC_FILES" ]; then
+            for f in $SRC_FILES; do
+              BASE=$(echo "$f" | sed 's|frontend/||; s|\.\(ts\|tsx\)$||')
+              for pattern in "${BASE}.test.ts" "${BASE}.test.tsx"; do
+                if [ -f "frontend/$pattern" ]; then
+                  RELATED_TESTS="$RELATED_TESTS $pattern"
+                fi
+              done
+            done
+          fi
+
+          ALL_TESTS=$(echo "$TEST_FILES $RELATED_TESTS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+          if [ -n "$ALL_TESTS" ]; then
+            echo "args=$ALL_TESTS" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests
+        working-directory: frontend
+        env:
+          TEST_ARGS: ${{ steps.test-files.outputs.args }}
+        run: |
+          if [ -n "$TEST_ARGS" ]; then
+            echo "Running targeted tests: $TEST_ARGS"
+            npx vitest run $TEST_ARGS
+          else
+            echo "Running all tests"
+            npx vitest run
+          fi
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint

@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS activities;
+DROP TABLE IF EXISTS collection_actions;
+DROP TABLE IF EXISTS repayment_schedule;
+DROP TABLE IF EXISTS facilities;
+DROP TABLE IF EXISTS committee_votes;
+DROP TABLE IF EXISTS committee_packages;
+DROP TABLE IF EXISTS documents;
+DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS products;
+DROP TYPE IF EXISTS vote_decision;
+DROP TYPE IF EXISTS committee_decision;

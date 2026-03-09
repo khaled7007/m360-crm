@@ -1,0 +1,2890 @@
+openapi: 3.0.3
+info:
+  title: M360 API
+  version: 1.0.0
+  description: |
+    M360 SME Lending CRM API for Shariah-compliant Murabaha financing in Saudi Arabia.
+    Bilingual Arabic/English with full loan lifecycle management, Saudi government
+    integrations (SIMAH, Bayan, Nafath, Yaqeen, Watheq), and role-based access control.
+
+    ## Roles
+    - `admin` - Full system access
+    - `manager` - Management-level access
+    - `loan_officer` - Loan origination and management
+    - `credit_analyst` - Credit assessment and committee packages
+    - `compliance_officer` - Compliance oversight
+    - `collections_officer` - Collections management
+    - `data_entry` - Data entry operations
+
+    ## Application Workflow
+    Draft -> Submitted -> PreApproved -> DocsCollected -> CreditAssessment -> CommitteeReview -> Approved/Rejected -> Disbursed
+  contact:
+    name: M360 Team
+  license:
+    name: Proprietary
+
+servers:
+  - url: /api/v1
+    description: API v1 base path
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication and user management
+  - name: Organizations
+    description: Organization (borrower company) management
+  - name: Contacts
+    description: Contact persons linked to organizations
+  - name: Leads
+    description: Lead tracking and qualification
+  - name: Products
+    description: Murabaha product templates
+  - name: Applications
+    description: Loan application lifecycle
+  - name: Committee
+    description: Credit committee packages and voting
+  - name: Facilities
+    description: Post-disbursement facility management
+  - name: Collections
+    description: Collections and overdue management
+  - name: Documents
+    description: Document upload and management
+  - name: Activities
+    description: Activity log / audit trail
+  - name: Notifications
+    description: User notifications
+  - name: Integrations
+    description: Saudi government integrations (SIMAH, Bayan, Nafath, Yaqeen, Watheq)
+  - name: Reports
+    description: Dashboard, pipeline, and analytics reports
+
+paths:
+  # ──────────────────────────────────────────────
+  # Auth
+  # ──────────────────────────────────────────────
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      description: Authenticate with email and password. Rate-limited to 5 requests per minute per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Reset link sent (if email exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────
+  # Organizations
+  # ──────────────────────────────────────────────
+  /organizations:
+    post:
+      tags: [Organizations]
+      summary: Create an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationCreateRequest'
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags: [Organizations]
+      summary: List organizations
+      parameters:
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Paginated list of organizations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /organizations/{id}:
+    get:
+      tags: [Organizations]
+      summary: Get organization by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Organization details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Organizations]
+      summary: Update an organization
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationUpdateRequest'
+      responses:
+        '200':
+          description: Organization updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Organizations]
+      summary: Delete an organization
+      description: Requires admin or manager role.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '204':
+          description: Organization deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Contacts
+  # ──────────────────────────────────────────────
+  /contacts:
+    post:
+      tags: [Contacts]
+      summary: Create a contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactCreateRequest'
+      responses:
+        '201':
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /contacts/{id}:
+    get:
+      tags: [Contacts]
+      summary: Get contact by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Contact details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Contacts]
+      summary: Update a contact
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactUpdateRequest'
+      responses:
+        '200':
+          description: Contact updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Contacts]
+      summary: Delete a contact
+      description: Requires admin or manager role.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '204':
+          description: Contact deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /contacts/organization/{org_id}:
+    get:
+      tags: [Contacts]
+      summary: List contacts by organization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of contacts for the organization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contact'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Leads
+  # ──────────────────────────────────────────────
+  /leads:
+    post:
+      tags: [Leads]
+      summary: Create a lead
+      description: Requires admin, manager, loan_officer, or data_entry role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCreateRequest'
+      responses:
+        '201':
+          description: Lead created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags: [Leads]
+      summary: List leads
+      parameters:
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/LeadStatus'
+      responses:
+        '200':
+          description: Paginated list of leads
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /leads/{id}:
+    get:
+      tags: [Leads]
+      summary: Get lead by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Lead details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Leads]
+      summary: Update a lead
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadUpdateRequest'
+      responses:
+        '200':
+          description: Lead updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Leads]
+      summary: Delete a lead
+      description: Requires admin or manager role.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '204':
+          description: Lead deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Products
+  # ──────────────────────────────────────────────
+  /products:
+    post:
+      tags: [Products]
+      summary: Create a product
+      description: Requires admin or manager role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags: [Products]
+      summary: List products
+      parameters:
+        - name: active
+          in: query
+          description: Filter to active products only
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Get product by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Products]
+      summary: Update a product
+      description: Requires admin or manager role.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Applications
+  # ──────────────────────────────────────────────
+  /applications:
+    post:
+      tags: [Applications]
+      summary: Create an application
+      description: Requires admin, manager, or loan_officer role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreateRequest'
+      responses:
+        '201':
+          description: Application created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags: [Applications]
+      summary: List applications
+      parameters:
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ApplicationStatus'
+      responses:
+        '200':
+          description: Paginated list of applications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /applications/{id}:
+    get:
+      tags: [Applications]
+      summary: Get application by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /applications/{id}/status:
+    put:
+      tags: [Applications]
+      summary: Update application status
+      description: Transition the application through the workflow. Only valid transitions are allowed.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationUpdateStatusRequest'
+      responses:
+        '200':
+          description: Application status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ──────────────────────────────────────────────
+  # Committee
+  # ──────────────────────────────────────────────
+  /packages:
+    post:
+      tags: [Committee]
+      summary: Create a committee package
+      description: Requires credit_analyst, admin, or manager role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitteePackageCreateRequest'
+      responses:
+        '201':
+          description: Committee package created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitteePackage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /packages/{id}:
+    get:
+      tags: [Committee]
+      summary: Get committee package by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Committee package details (includes votes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitteePackage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /packages/application/{app_id}:
+    get:
+      tags: [Committee]
+      summary: Get committee package by application ID
+      parameters:
+        - name: app_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Committee package for the application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitteePackage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /packages/{id}/vote:
+    post:
+      tags: [Committee]
+      summary: Cast a vote on a committee package
+      description: Requires manager role.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CastVoteRequest'
+      responses:
+        '200':
+          description: Vote cast, returns updated package
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitteePackage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Facilities
+  # ──────────────────────────────────────────────
+  /facilities:
+    get:
+      tags: [Facilities]
+      summary: List facilities
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, closed, defaulted, restructured]
+        - name: organization_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: delinquency
+          in: query
+          schema:
+            type: string
+            enum: [current, par_30, par_60, par_90, par_180, write_off]
+      responses:
+        '200':
+          description: Paginated list of facilities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacilityListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Facilities]
+      summary: Create a facility
+      description: Requires admin or manager role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityCreateRequest'
+      responses:
+        '201':
+          description: Facility created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /facilities/{id}:
+    get:
+      tags: [Facilities]
+      summary: Get facility by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Facility details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /facilities/{id}/schedule:
+    get:
+      tags: [Facilities]
+      summary: Get facility repayment schedule
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Repayment schedule
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  facility_id:
+                    type: string
+                    format: uuid
+                  schedule:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RepaymentScheduleItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /facilities/{id}/payments:
+    post:
+      tags: [Facilities]
+      summary: Record a payment on a facility
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordPaymentRequest'
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Payment recorded successfully
+                  facility:
+                    $ref: '#/components/schemas/Facility'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Collections
+  # ──────────────────────────────────────────────
+  /collections:
+    post:
+      tags: [Collections]
+      summary: Create a collection action
+      description: Requires collections_officer, admin, or manager role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreateRequest'
+      responses:
+        '201':
+          description: Collection action created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionAction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /collections/facility/{id}:
+    get:
+      tags: [Collections]
+      summary: List collection actions by facility
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Collection actions for the facility
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CollectionAction'
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      total:
+                        type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /collections/overdue:
+    get:
+      tags: [Collections]
+      summary: Get overdue facilities summary
+      responses:
+        '200':
+          description: Overdue summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverdueSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Documents
+  # ──────────────────────────────────────────────
+  /documents:
+    post:
+      tags: [Documents]
+      summary: Upload a document
+      description: |
+        Upload a file (max 10MB). Allowed types: PDF, JPEG, PNG, DOC, DOCX, XLS, XLSX.
+        Uses multipart/form-data with fields: file, entity_type, entity_id, name, category (optional).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, entity_type, entity_id, name]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload (max 10MB)
+                entity_type:
+                  type: string
+                  description: Type of entity the document belongs to (e.g. application, organization)
+                entity_id:
+                  type: string
+                  format: uuid
+                  description: ID of the entity
+                name:
+                  type: string
+                  description: Document name
+                category:
+                  type: string
+                  description: Document category (optional)
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /documents/{id}:
+    get:
+      tags: [Documents]
+      summary: Get document by ID
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Documents]
+      summary: Delete a document
+      description: Requires admin or manager role.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Document deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /documents/entity/{type}/{id}:
+    get:
+      tags: [Documents]
+      summary: List documents by entity
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Entity type (e.g. application, organization)
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Entity ID
+      responses:
+        '200':
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Activities
+  # ──────────────────────────────────────────────
+  /activities:
+    post:
+      tags: [Activities]
+      summary: Create an activity log entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityCreateRequest'
+      responses:
+        '201':
+          description: Activity created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /activities/entity/{type}/{id}:
+    get:
+      tags: [Activities]
+      summary: List activities by entity
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Entity type
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Entity ID
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Paginated activity list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+                  total:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /activities/user/{id}:
+    get:
+      tags: [Activities]
+      summary: List activities by user
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Paginated activity list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+                  total:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Notifications
+  # ──────────────────────────────────────────────
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for current user
+      parameters:
+        - name: unread
+          in: query
+          description: Filter to unread only
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /notifications/{id}/read:
+    put:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /notifications/read-all:
+    put:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /notifications/count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread_count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Integrations
+  # ──────────────────────────────────────────────
+  /integrations/simah/{national_id}:
+    get:
+      tags: [Integrations]
+      summary: Get SIMAH consumer credit report
+      description: Retrieves credit score, risk level, active loans, defaults, and total debt for an individual.
+      parameters:
+        - name: national_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Saudi National ID
+      responses:
+        '200':
+          description: SIMAH credit report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SIMAHCreditReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /integrations/bayan/{cr_number}:
+    get:
+      tags: [Integrations]
+      summary: Get Bayan commercial credit report
+      description: Retrieves business credit score, risk level, capital, years in business, and employee count.
+      parameters:
+        - name: cr_number
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Commercial Registration number
+      responses:
+        '200':
+          description: Bayan business credit report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BayanCreditReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /integrations/nafath/{national_id}:
+    get:
+      tags: [Integrations]
+      summary: Verify identity through Nafath
+      description: National identity verification via fingerprint, facial recognition, or OTP.
+      parameters:
+        - name: national_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Saudi National ID
+      responses:
+        '200':
+          description: Nafath identity verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NafathIdentityInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /integrations/yaqeen/{national_id}:
+    get:
+      tags: [Integrations]
+      summary: Get person info from Yaqeen
+      description: Retrieves enriched personal data including age, gender, marital status, and ID expiry.
+      parameters:
+        - name: national_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Saudi National ID
+      responses:
+        '200':
+          description: Yaqeen person information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YaqeenIdentityInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /integrations/watheq/{cr_number}:
+    get:
+      tags: [Integrations]
+      summary: Verify CR through Watheq
+      description: Verifies Commercial Registration status, entity type, activities, and capital.
+      parameters:
+        - name: cr_number
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Commercial Registration number
+      responses:
+        '200':
+          description: Watheq CR verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatheqCRInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────
+  # Reports
+  # ──────────────────────────────────────────────
+  /reports/dashboard:
+    get:
+      tags: [Reports]
+      summary: Get dashboard statistics
+      description: Overall statistics including leads, applications, facilities, disbursed amounts, and PAR metrics.
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/pipeline:
+    get:
+      tags: [Reports]
+      summary: Get pipeline statistics
+      description: Application pipeline funnel showing count per workflow status.
+      responses:
+        '200':
+          description: Pipeline statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/officers:
+    get:
+      tags: [Reports]
+      summary: Get officer performance
+      description: Performance metrics for loan officers. Requires manager or admin role.
+      responses:
+        '200':
+          description: Officer performance list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OfficerPerformance'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/par:
+    get:
+      tags: [Reports]
+      summary: Get portfolio at risk analysis
+      description: Delinquency breakdown and portfolio at risk ratios. Requires manager or admin role.
+      responses:
+        '200':
+          description: Portfolio at risk data
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Portfolio at risk analysis with delinquency breakdown
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from /auth/login or /auth/refresh
+
+  parameters:
+    IDParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SearchParam:
+      name: search
+      in: query
+      description: Search term
+      schema:
+        type: string
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page (default 20)
+      schema:
+        type: integer
+        default: 20
+    OffsetParam:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        default: 0
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized - missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden - insufficient role
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ── Common ──
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    # ── Auth ──
+    Role:
+      type: string
+      enum: [admin, manager, loan_officer, credit_analyst, compliance_officer, collections_officer, data_entry]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: Refresh token
+        user:
+          $ref: '#/components/schemas/User'
+
+    CreateUserRequest:
+      type: object
+      required: [email, password, name_en, role]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, new_password]
+      properties:
+        token:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+
+    # ── Organization ──
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        cr_number:
+          type: string
+          nullable: true
+        cr_verified:
+          type: boolean
+        tax_id:
+          type: string
+          nullable: true
+        industry:
+          type: string
+          nullable: true
+        legal_structure:
+          type: string
+          nullable: true
+        founding_date:
+          type: string
+          format: date-time
+          nullable: true
+        address_en:
+          type: string
+          nullable: true
+        address_ar:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        website:
+          type: string
+          nullable: true
+        assigned_officer_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrganizationCreateRequest:
+      type: object
+      required: [name_en]
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        cr_number:
+          type: string
+        tax_id:
+          type: string
+        industry:
+          type: string
+        legal_structure:
+          type: string
+        address_en:
+          type: string
+        address_ar:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        website:
+          type: string
+
+    OrganizationUpdateRequest:
+      type: object
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        cr_number:
+          type: string
+        tax_id:
+          type: string
+        industry:
+          type: string
+        legal_structure:
+          type: string
+        address_en:
+          type: string
+        address_ar:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        website:
+          type: string
+
+    OrganizationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+        total:
+          type: integer
+
+    # ── Contact ──
+    Contact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        national_id:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        nafath_verified:
+          type: boolean
+        simah_score:
+          type: integer
+          nullable: true
+        is_guarantor:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ContactCreateRequest:
+      type: object
+      required: [organization_id, name_en]
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        national_id:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        is_guarantor:
+          type: boolean
+
+    ContactUpdateRequest:
+      type: object
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        national_id:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        is_guarantor:
+          type: boolean
+
+    # ── Lead ──
+    LeadStatus:
+      type: string
+      enum: [new, contacted, qualified, unqualified, converted]
+
+    Lead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        company_name:
+          type: string
+          nullable: true
+        source:
+          type: string
+        status:
+          $ref: '#/components/schemas/LeadStatus'
+        estimated_amount:
+          type: number
+          format: double
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        assigned_officer_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LeadCreateRequest:
+      type: object
+      required: [contact_name, source]
+      properties:
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        contact_email:
+          type: string
+        company_name:
+          type: string
+        source:
+          type: string
+        estimated_amount:
+          type: number
+          format: double
+        notes:
+          type: string
+
+    LeadUpdateRequest:
+      type: object
+      properties:
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        contact_email:
+          type: string
+        company_name:
+          type: string
+        source:
+          type: string
+        status:
+          $ref: '#/components/schemas/LeadStatus'
+        estimated_amount:
+          type: number
+          format: double
+        notes:
+          type: string
+        organization_id:
+          type: string
+          format: uuid
+
+    LeadListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lead'
+        total:
+          type: integer
+
+    # ── Product ──
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        type:
+          type: string
+        min_amount:
+          type: number
+          format: double
+        max_amount:
+          type: number
+          format: double
+        min_tenor_months:
+          type: integer
+        max_tenor_months:
+          type: integer
+        profit_rate:
+          type: number
+          format: double
+        admin_fee_pct:
+          type: number
+          format: double
+        payment_frequency:
+          type: string
+        eligibility_criteria:
+          type: object
+          description: Arbitrary JSON
+        required_documents:
+          type: object
+          description: Arbitrary JSON
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProductCreateRequest:
+      type: object
+      required: [name_en]
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        type:
+          type: string
+        min_amount:
+          type: number
+          format: double
+        max_amount:
+          type: number
+          format: double
+        min_tenor_months:
+          type: integer
+        max_tenor_months:
+          type: integer
+        profit_rate:
+          type: number
+          format: double
+        admin_fee_pct:
+          type: number
+          format: double
+        payment_frequency:
+          type: string
+        required_documents:
+          type: object
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        min_amount:
+          type: number
+          format: double
+        max_amount:
+          type: number
+          format: double
+        profit_rate:
+          type: number
+          format: double
+        admin_fee_pct:
+          type: number
+          format: double
+        is_active:
+          type: boolean
+
+    # ── Application ──
+    ApplicationStatus:
+      type: string
+      enum: [draft, submitted, pre_approved, documents_collected, credit_assessment, committee_review, approved, rejected, disbursed]
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference_number:
+          type: string
+        organization_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        requested_amount:
+          type: number
+          format: double
+        approved_amount:
+          type: number
+          format: double
+          nullable: true
+        tenor_months:
+          type: integer
+        profit_rate:
+          type: number
+          format: double
+          nullable: true
+        purpose:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        assigned_officer_id:
+          type: string
+          format: uuid
+          nullable: true
+        credit_analyst_id:
+          type: string
+          format: uuid
+          nullable: true
+        compliance_officer_id:
+          type: string
+          format: uuid
+          nullable: true
+        pre_approval_date:
+          type: string
+          format: date-time
+          nullable: true
+        approval_date:
+          type: string
+          format: date-time
+          nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ApplicationCreateRequest:
+      type: object
+      required: [organization_id, product_id, requested_amount, tenor_months]
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        requested_amount:
+          type: number
+          format: double
+        tenor_months:
+          type: integer
+        purpose:
+          type: string
+
+    ApplicationUpdateStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        approved_amount:
+          type: number
+          format: double
+        profit_rate:
+          type: number
+          format: double
+        rejection_reason:
+          type: string
+
+    ApplicationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Application'
+        total:
+          type: integer
+
+    # ── Committee ──
+    CommitteeDecision:
+      type: string
+      enum: [pending, approved, rejected, approved_with_conditions]
+
+    VoteDecision:
+      type: string
+      enum: [approve, reject, approve_with_conditions]
+
+    CommitteeVote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        package_id:
+          type: string
+          format: uuid
+        voter_id:
+          type: string
+          format: uuid
+        decision:
+          $ref: '#/components/schemas/VoteDecision'
+        comments:
+          type: string
+          nullable: true
+        voted_at:
+          type: string
+          format: date-time
+
+    CommitteePackage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        application_id:
+          type: string
+          format: uuid
+        prepared_by:
+          type: string
+          format: uuid
+        risk_score:
+          type: integer
+          nullable: true
+        recommendation:
+          type: string
+          nullable: true
+        financial_analysis:
+          type: object
+          description: Arbitrary JSON
+        decision:
+          $ref: '#/components/schemas/CommitteeDecision'
+        decision_date:
+          type: string
+          format: date-time
+          nullable: true
+        conditions:
+          type: string
+          nullable: true
+        quorum_required:
+          type: integer
+        votes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommitteeVote'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CommitteePackageCreateRequest:
+      type: object
+      required: [application_id, quorum_required]
+      properties:
+        application_id:
+          type: string
+          format: uuid
+        risk_score:
+          type: integer
+        recommendation:
+          type: string
+        quorum_required:
+          type: integer
+
+    CastVoteRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          $ref: '#/components/schemas/VoteDecision'
+        comments:
+          type: string
+
+    # ── Facility ──
+    Facility:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference_number:
+          type: string
+        application_id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        principal_amount:
+          type: number
+          format: double
+        profit_amount:
+          type: number
+          format: double
+        total_amount:
+          type: number
+          format: double
+        outstanding_balance:
+          type: number
+          format: double
+        profit_rate:
+          type: number
+          format: double
+        tenor_months:
+          type: integer
+        payment_frequency:
+          type: string
+          description: "monthly, quarterly, etc."
+        disbursement_date:
+          type: string
+          format: date-time
+        maturity_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, closed, defaulted, restructured]
+        delinquency:
+          type: string
+          enum: [current, par_30, par_60, par_90, par_180, write_off]
+        assigned_officer_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FacilityCreateRequest:
+      type: object
+      required: [application_id, organization_id, product_id, principal_amount, profit_amount, tenor_months, payment_frequency, disbursement_date]
+      properties:
+        application_id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        principal_amount:
+          type: number
+          format: double
+        profit_amount:
+          type: number
+          format: double
+        tenor_months:
+          type: integer
+        payment_frequency:
+          type: string
+        disbursement_date:
+          type: string
+          format: date-time
+
+    FacilityListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Facility'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+
+    RepaymentScheduleItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        facility_id:
+          type: string
+          format: uuid
+        installment_number:
+          type: integer
+        due_date:
+          type: string
+          format: date-time
+        principal_amount:
+          type: number
+          format: double
+        profit_amount:
+          type: number
+          format: double
+        total_amount:
+          type: number
+          format: double
+        paid_amount:
+          type: number
+          format: double
+        paid_date:
+          type: string
+          format: date-time
+          nullable: true
+        is_paid:
+          type: boolean
+        is_overdue:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    RecordPaymentRequest:
+      type: object
+      required: [installment_number, paid_amount, payment_date]
+      properties:
+        installment_number:
+          type: integer
+        paid_amount:
+          type: number
+          format: double
+        payment_date:
+          type: string
+          format: date-time
+
+    # ── Collection ──
+    CollectionAction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        facility_id:
+          type: string
+          format: uuid
+        officer_id:
+          type: string
+          format: uuid
+        action_type:
+          type: string
+          enum: [sms_reminder, phone_call, formal_notice, restructuring]
+        description:
+          type: string
+          nullable: true
+        next_action_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CollectionCreateRequest:
+      type: object
+      required: [facility_id, action_type]
+      properties:
+        facility_id:
+          type: string
+          format: uuid
+        action_type:
+          type: string
+          enum: [sms_reminder, phone_call, formal_notice, restructuring]
+        description:
+          type: string
+        next_action_date:
+          type: string
+          format: date-time
+
+    OverdueFacility:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        facility_number:
+          type: string
+        borrower_name:
+          type: string
+        overdue_amount:
+          type: number
+          format: double
+        days_overdue:
+          type: integer
+        last_collection_date:
+          type: string
+          format: date-time
+          nullable: true
+        collection_count:
+          type: integer
+
+    OverdueSummary:
+      type: object
+      properties:
+        total_overdue_facilities:
+          type: integer
+        overdue_facilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverdueFacility'
+
+    # ── Document ──
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        file_path:
+          type: string
+        file_size:
+          type: integer
+          format: int64
+        mime_type:
+          type: string
+        category:
+          type: string
+          nullable: true
+        uploaded_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    # ── Activity ──
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        description:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          description: Arbitrary JSON metadata
+        created_at:
+          type: string
+          format: date-time
+
+    ActivityCreateRequest:
+      type: object
+      required: [entity_type, entity_id, action]
+      properties:
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+
+    # ── Notification ──
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        body:
+          type: string
+          nullable: true
+        type:
+          type: string
+        entity_type:
+          type: string
+          nullable: true
+        entity_id:
+          type: string
+          format: uuid
+          nullable: true
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    # ── Integration responses ──
+    SIMAHCreditReport:
+      type: object
+      properties:
+        score:
+          type: integer
+          description: Credit score (600-870)
+        risk_level:
+          type: string
+          enum: [very_low, low, medium, high]
+        active_loans:
+          type: integer
+        default_count:
+          type: integer
+        total_debt:
+          type: integer
+        last_updated:
+          type: string
+          description: Date string (YYYY-MM-DD)
+
+    BayanCreditReport:
+      type: object
+      properties:
+        score:
+          type: integer
+          description: Business credit score
+        risk_level:
+          type: string
+          enum: [very_low, low, medium, high]
+        active_loans:
+          type: integer
+        default_count:
+          type: integer
+        capital:
+          type: integer
+        years_in_business:
+          type: integer
+        employee_count:
+          type: integer
+        last_updated:
+          type: string
+
+    NafathIdentityInfo:
+      type: object
+      properties:
+        national_id:
+          type: string
+        full_name_en:
+          type: string
+        full_name_ar:
+          type: string
+        date_of_birth:
+          type: string
+        nationality:
+          type: string
+        verified:
+          type: boolean
+        confidence_level:
+          type: number
+          format: double
+        verification_method:
+          type: string
+          enum: [fingerprint, facial_recognition, otp]
+
+    YaqeenIdentityInfo:
+      type: object
+      properties:
+        national_id:
+          type: string
+        full_name_en:
+          type: string
+        full_name_ar:
+          type: string
+        date_of_birth:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        nationality:
+          type: string
+        id_expiry_date:
+          type: string
+        marital_status:
+          type: string
+        verified:
+          type: boolean
+
+    WatheqCRInfo:
+      type: object
+      properties:
+        cr_number:
+          type: string
+        company_name_en:
+          type: string
+        company_name_ar:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, suspended]
+        entity_type:
+          type: string
+        expiry_date:
+          type: string
+        issue_date:
+          type: string
+        activities:
+          type: string
+        capital:
+          type: integer
+        is_active:
+          type: boolean
+
+    # ── Reports ──
+    DashboardStats:
+      type: object
+      properties:
+        total_leads:
+          type: integer
+        total_applications:
+          type: integer
+        total_facilities:
+          type: integer
+        total_disbursed:
+          type: number
+          format: double
+        total_outstanding:
+          type: number
+          format: double
+        par_30:
+          type: number
+          format: double
+        par_60:
+          type: number
+          format: double
+        par_90:
+          type: number
+          format: double
+
+    PipelineStats:
+      type: object
+      properties:
+        draft:
+          type: integer
+        submitted:
+          type: integer
+        pre_approved:
+          type: integer
+        documents_collected:
+          type: integer
+        credit_assessment:
+          type: integer
+        committee_review:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        disbursed:
+          type: integer
+
+    OfficerPerformance:
+      type: object
+      properties:
+        officer_id:
+          type: string
+        officer_name:
+          type: string
+        lead_count:
+          type: integer
+        app_count:
+          type: integer
+        disbursed:
+          type: number
+          format: double
+        conversion_rate:
+          type: number
+          format: double
