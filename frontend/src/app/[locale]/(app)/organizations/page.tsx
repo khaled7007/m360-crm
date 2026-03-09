@@ -205,31 +205,6 @@ export default function OrganizationsPage() {
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name_en.trim()) {
-      toast.error(t("nameEnRequired"));
-      return;
-    }
-
-    if (!formData.name_ar.trim()) {
-      toast.error(t("nameArRequired"));
-      return;
-    }
-
-    if (!formData.cr_number.trim()) {
-      toast.error(t("crNumberRequired"));
-      return;
-    }
-
-    if (!formData.email.trim()) {
-      toast.error(t("emailRequired"));
-      return;
-    }
-
-    if (!formData.phone.trim()) {
-      toast.error(t("phoneRequired"));
-      return;
-    }
-
     try {
       await createOrganization(formData);
       toast.success(t("createSuccess"));

@@ -45,8 +45,19 @@ export const STAGE_MAP: Record<string, string> = {
 };
 
 export const STATUS_CONFIG: Record<string, StatusConfig> = {
+  // Legacy pipeline statuses
   hot:       { label: "ساخن",    color: "#DC2626", bg: "#FEE2E2" },
   warm:      { label: "دافئ",    color: "#EA580C", bg: "#FFEDD5" },
   cold:      { label: "بارد",    color: "#2563EB", bg: "#DBEAFE" },
   follow_up: { label: "متابعة",  color: "#7C3AED", bg: "#EDE9FE" },
+  // Application workflow statuses
+  draft:                { label: "مسودة",           color: "#6B7280", bg: "#F3F4F6" },
+  submitted:            { label: "مقدّم",           color: "#2563EB", bg: "#DBEAFE" },
+  pre_approved:         { label: "موافقة مبدئية",   color: "#7C3AED", bg: "#EDE9FE" },
+  documents_collected:  { label: "وثائق مكتملة",   color: "#D97706", bg: "#FEF3C7" },
+  credit_assessment:    { label: "تقييم ائتماني",  color: "#EA580C", bg: "#FFEDD5" },
+  committee_review:     { label: "مراجعة اللجنة",  color: "#9333EA", bg: "#F3E8FF" },
+  approved:             { label: "معتمد",           color: "#059669", bg: "#ECFDF5" },
+  rejected:             { label: "مرفوض",           color: "#DC2626", bg: "#FEF2F2" },
+  disbursed:            { label: "صُرف التمويل",   color: "#0F766E", bg: "#CCFBF1" },
 };

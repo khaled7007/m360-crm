@@ -33,6 +33,7 @@ interface Application {
   requested_amount: number;
   requested_tenor_months: number;
   purpose: string;
+  pipeline_stage?: string;
   status:
     | "draft"
     | "submitted"
@@ -54,6 +55,7 @@ interface CreateApplicationInput {
   requested_amount: number;
   requested_tenor_months: number;
   purpose: string;
+  pipeline_stage: string;
 }
 
 export default function ApplicationsPage() {
@@ -71,6 +73,7 @@ export default function ApplicationsPage() {
     requested_amount: 0,
     requested_tenor_months: 12,
     purpose: "",
+    pipeline_stage: "new",
   });
 
   const { data: organizations } = useApiList<Organization>("/organizations");
@@ -121,6 +124,7 @@ export default function ApplicationsPage() {
         requested_amount: 0,
         requested_tenor_months: 12,
         purpose: "",
+        pipeline_stage: "new",
       });
       refetchApplications();
     } catch {
@@ -355,6 +359,23 @@ export default function ApplicationsPage() {
               placeholder={t("purposePlaceholder")}
               rows={3}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              مرحلة خط سير المبيعات
+            </label>
+            <select
+              value={formData.pipeline_stage}
+              onChange={(e) => setFormData({ ...formData, pipeline_stage: e.target.value })}
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="new">جديد</option>
+              <option value="lead">عميل محتمل</option>
+              <option value="interested">مهتم</option>
+              <option value="deal">صفقة</option>
+              <option value="reject">مرفوض</option>
+            </select>
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
