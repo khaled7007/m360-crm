@@ -13,13 +13,19 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+const APP_STATUSES = [
+  "draft", "submitted", "pre_approved", "documents_collected",
+  "credit_assessment", "committee_review", "approved", "rejected", "disbursed",
+] as const;
+
 interface ClientDrawerProps {
   client: Client;
   onClose: () => void;
   onUpdate: (client: Client) => void;
+  onStatusChange: (clientId: string, newStatus: string) => void;
 }
 
-export function ClientDrawer({ client, onClose, onUpdate }: ClientDrawerProps) {
+export function ClientDrawer({ client, onClose, onUpdate, onStatusChange }: ClientDrawerProps) {
   const { config: { stages } } = usePipelineConfig();
   const { statusConfig } = useStatusConfig();
   const [notes, setNotes] = useState(client.notes ?? "");
@@ -73,19 +79,30 @@ export function ClientDrawer({ client, onClose, onUpdate }: ClientDrawerProps) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Badges */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <span
               className="px-3 py-1 rounded-full text-sm font-semibold text-white"
               style={{ backgroundColor: stage?.headerBg }}
             >
               {stage?.label}
             </span>
-            <span
-              className="px-3 py-1 rounded-full text-sm font-semibold"
-              style={{ color: statusCfg.color, backgroundColor: statusCfg.bg }}
-            >
-              {statusCfg.label}
-            </span>
+
+            {/* Status dropdown */}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">تغيير الحالة</span>
+              <select
+                value={client.status}
+                onChange={(e) => onStatusChange(client.id, e.target.value)}
+                className="text-sm font-semibold rounded-full border-0 outline-none cursor-pointer appearance-none px-3 py-1 ring-1 ring-inset ring-transparent hover:ring-gray-200 transition"
+                style={{ color: statusCfg.color, backgroundColor: statusCfg.bg }}
+              >
+                {APP_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {statusConfig[s]?.label || s}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Deal value */}

@@ -231,6 +231,7 @@ function PipelineBoard() {
           client={selectedClient}
           onClose={() => setSelectedClient(null)}
           onUpdate={handleUpdate}
+          onStatusChange={handleStatusChange}
         />
       )}
 
