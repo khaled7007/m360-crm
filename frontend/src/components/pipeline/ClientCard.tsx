@@ -11,14 +11,20 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+const APP_STATUSES = [
+  "draft", "submitted", "pre_approved", "documents_collected",
+  "credit_assessment", "committee_review", "approved", "rejected", "disbursed",
+] as const;
+
 interface ClientCardProps {
   client: Client;
   index: number;
   isHighlighted: boolean;
   onClick: (client: Client) => void;
+  onStatusChange: (clientId: string, newStatus: string) => void;
 }
 
-export function ClientCard({ client, index, isHighlighted, onClick }: ClientCardProps) {
+export function ClientCard({ client, index, isHighlighted, onClick, onStatusChange }: ClientCardProps) {
   const { statusConfig } = useStatusConfig();
   const statusCfg = statusConfig[client.status] ?? { label: client.status.replace(/_/g, " "), color: "#6B7280", bg: "#F3F4F6" };
   const initials = client.assignee ? client.assignee.slice(0, 1) : "؟";
@@ -40,14 +46,24 @@ export function ClientCard({ client, index, isHighlighted, onClick }: ClientCard
             isHighlighted ? "ring-2 ring-yellow-400 border-yellow-300" : "",
           ].join(" ")}
         >
-          {/* Top row */}
+          {/* Top row: status dropdown + date */}
           <div className="flex items-center justify-between mb-2.5">
-            <span
-              className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+            <select
+              value={client.status}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                e.stopPropagation();
+                onStatusChange(client.id, e.target.value);
+              }}
+              className="text-xs font-semibold rounded-full border-0 outline-none cursor-pointer appearance-none px-2.5 py-0.5"
               style={{ color: statusCfg.color, backgroundColor: statusCfg.bg }}
             >
-              {statusCfg.label}
-            </span>
+              {APP_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {statusConfig[s]?.label || s}
+                </option>
+              ))}
+            </select>
             <span className="text-xs text-gray-400">{client.updatedAt}</span>
           </div>
 
@@ -56,7 +72,7 @@ export function ClientCard({ client, index, isHighlighted, onClick }: ClientCard
             {client.name}
           </h3>
 
-          {/* Company */}
+          {/* Company / reference */}
           <p className="text-xs text-gray-500 mb-3 truncate">{client.company}</p>
 
           <div className="border-t border-gray-50 mb-2.5" />

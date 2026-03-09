@@ -17,10 +17,11 @@ interface BoardProps {
   clients: Client[];
   onDragEnd: (result: DropResult) => void;
   onCardClick: (client: Client) => void;
+  onStatusChange: (clientId: string, newStatus: string) => void;
   searchQuery: string;
 }
 
-export function Board({ clients, onDragEnd, onCardClick, searchQuery }: BoardProps) {
+export function Board({ clients, onDragEnd, onCardClick, onStatusChange, searchQuery }: BoardProps) {
   const { config: { stages: STAGES } } = usePipelineConfig();
   const clientsByStage = STAGES.reduce<Record<string, Client[]>>((acc, stage) => {
     acc[stage.id] = clients.filter((c) => c.stage === stage.id);
@@ -85,6 +86,7 @@ export function Board({ clients, onDragEnd, onCardClick, searchQuery }: BoardPro
                         index={index}
                         isHighlighted={isHighlighted(client)}
                         onClick={onCardClick}
+                        onStatusChange={onStatusChange}
                       />
                     ))}
                     {provided.placeholder}

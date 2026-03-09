@@ -112,6 +112,20 @@ function PipelineBoard() {
     }
   };
 
+  const handleStatusChange = async (clientId: string, newStatus: string) => {
+    try {
+      const token = localStorage.getItem("m360_token") || "";
+      await api(`/applications/${clientId}`, {
+        method: "PUT",
+        body: { status: newStatus },
+        token,
+      });
+      refetch();
+    } catch {
+      toast.error("فشل تحديث الحالة");
+    }
+  };
+
   const handleUpdate = async (updated: Client) => {
     try {
       const token = localStorage.getItem("m360_token") || "";
@@ -205,6 +219,7 @@ function PipelineBoard() {
             clients={clients}
             onDragEnd={onDragEnd}
             onCardClick={setSelectedClient}
+            onStatusChange={handleStatusChange}
             searchQuery={searchQuery}
           />
         </div>
