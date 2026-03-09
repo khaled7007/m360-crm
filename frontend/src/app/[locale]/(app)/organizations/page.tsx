@@ -7,9 +7,10 @@ import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { api } from "@/lib/api";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Loader2, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { OrgImportModal } from "@/components/organizations/OrgImportModal";
 
 // ---------------------------------------------------------------------------
 // Watheq Full Report types (mirrors backend WatheqFullReport)
@@ -109,6 +110,7 @@ export default function OrganizationsPage() {
   const t = useTranslations("organizations");
   const tc = useTranslations("common");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
@@ -310,13 +312,22 @@ export default function OrganizationsPage() {
           title={t("title")}
           description={t("subtitle")}
         />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-        >
-          <Plus size={20} />
-          {t("newOrg")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition"
+          >
+            <FileUp size={18} />
+            استيراد Excel
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+          >
+            <Plus size={20} />
+            {t("newOrg")}
+          </button>
+        </div>
       </div>
 
       {isLoadingOrganizations && (
@@ -368,6 +379,12 @@ export default function OrganizationsPage() {
           )}
         </div>
       )}
+
+      <OrgImportModal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={() => { setIsImportOpen(false); refetchOrganizations(); }}
+      />
 
       <Modal
         open={isModalOpen}
