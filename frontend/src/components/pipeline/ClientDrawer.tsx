@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Client, STAGES, STATUS_CONFIG } from "./stageConfig";
+import { Client } from "./stageConfig";
+import { usePipelineConfig } from "./pipeline-config-context";
 import { X } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -18,6 +19,7 @@ interface ClientDrawerProps {
 }
 
 export function ClientDrawer({ client, onClose, onUpdate }: ClientDrawerProps) {
+  const { config: { stages, statusConfig } } = usePipelineConfig();
   const [notes, setNotes] = useState(client.notes ?? "");
   const [saved, setSaved] = useState(false);
 
@@ -27,8 +29,8 @@ export function ClientDrawer({ client, onClose, onUpdate }: ClientDrawerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client.id]);
 
-  const stage = STAGES.find((s) => s.id === client.stage);
-  const statusCfg = STATUS_CONFIG[client.status] ?? STATUS_CONFIG["cold"];
+  const stage = stages.find((s) => s.id === client.stage);
+  const statusCfg = statusConfig[client.status] ?? statusConfig["cold"] ?? { label: client.status, color: "#6B7280", bg: "#F3F4F6" };
 
   const handleSave = () => {
     onUpdate({ ...client, notes });

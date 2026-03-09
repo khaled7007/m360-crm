@@ -1,8 +1,9 @@
 "use client";
 
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
-import { Client, STAGES } from "./stageConfig";
+import { Client } from "./stageConfig";
 import { ClientCard } from "./ClientCard";
+import { usePipelineConfig } from "./pipeline-config-context";
 
 const fmtCompact = (n: number) =>
   new Intl.NumberFormat("ar-SA", {
@@ -20,6 +21,7 @@ interface BoardProps {
 }
 
 export function Board({ clients, onDragEnd, onCardClick, searchQuery }: BoardProps) {
+  const { config: { stages: STAGES } } = usePipelineConfig();
   const clientsByStage = STAGES.reduce<Record<string, Client[]>>((acc, stage) => {
     acc[stage.id] = clients.filter((c) => c.stage === stage.id);
     return acc;

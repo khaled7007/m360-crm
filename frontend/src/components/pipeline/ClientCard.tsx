@@ -1,7 +1,8 @@
 "use client";
 
 import { Draggable } from "@hello-pangea/dnd";
-import { Client, STATUS_CONFIG } from "./stageConfig";
+import { Client } from "./stageConfig";
+import { usePipelineConfig } from "./pipeline-config-context";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("ar-SA", {
@@ -18,7 +19,8 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, index, isHighlighted, onClick }: ClientCardProps) {
-  const statusCfg = STATUS_CONFIG[client.status] ?? STATUS_CONFIG["cold"];
+  const { config: { statusConfig } } = usePipelineConfig();
+  const statusCfg = statusConfig[client.status] ?? statusConfig["cold"] ?? { label: client.status, color: "#6B7280", bg: "#F3F4F6" };
   const initials = client.assignee ? client.assignee.slice(0, 1) : "؟";
 
   return (

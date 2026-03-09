@@ -2,10 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { DropResult } from "@hello-pangea/dnd";
-import { Search } from "lucide-react";
+import { Search, Settings2 } from "lucide-react";
 import { Board } from "@/components/pipeline/Board";
 import { ClientDrawer } from "@/components/pipeline/ClientDrawer";
 import { StatsBar } from "@/components/pipeline/StatsBar";
+import { PipelineSettingsModal } from "@/components/pipeline/PipelineSettingsModal";
+import { PipelineConfigProvider } from "@/components/pipeline/pipeline-config-context";
 import { Client } from "@/components/pipeline/stageConfig";
 import { useApiList } from "@/lib/use-api";
 import { api } from "@/lib/api";
@@ -47,8 +49,17 @@ function appToClient(app: Application, orgsById: Record<string, Organization>): 
 }
 
 export default function PipelinePage() {
+  return (
+    <PipelineConfigProvider>
+      <PipelineBoard />
+    </PipelineConfigProvider>
+  );
+}
+
+function PipelineBoard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
   // local override of pipeline_stage while waiting for re-fetch
   const [stageOverrides, setStageOverrides] = useState<Record<string, string>>({});
 
@@ -135,6 +146,15 @@ export default function PipelinePage() {
           </p>
         </div>
 
+        {/* Settings */}
+        <button
+          onClick={() => setShowSettings(true)}
+          className="p-2 rounded-xl border border-stone-200 hover:bg-stone-100 transition text-stone-500"
+          title="إعدادات خط سير المبيعات"
+        >
+          <Settings2 size={18} />
+        </button>
+
         {/* Search */}
         <div className="relative">
           <Search
@@ -197,6 +217,11 @@ export default function PipelinePage() {
           onClose={() => setSelectedClient(null)}
           onUpdate={handleUpdate}
         />
+      )}
+
+      {/* Settings modal */}
+      {showSettings && (
+        <PipelineSettingsModal onClose={() => setShowSettings(false)} />
       )}
     </div>
   );
