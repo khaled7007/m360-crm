@@ -89,7 +89,8 @@
     "logging": "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ³Ø¬ÙŠÙ„...",
     "loadingSummary": "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù„Ø®Øµ...",
     "accounts": "{count, plural, one {Ø­Ø³Ø§Ø¨ ÙˆØ§Ø­Ø¯} other {# Ø­Ø³Ø§Ø¨Ø§Øª}}",
-    "loadError": "ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰."
+    "loadError": "ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
+    "credit_assessment": "ÇáÇÆÊãÇä"
   },
   "auth": {
     "email": "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ",
@@ -551,6 +552,255 @@
       "par30": "Ù…ØªØ£Ø®Ø± 30+",
       "par60": "Ù…ØªØ£Ø®Ø± 60+",
       "par90": "Ù…ØªØ£Ø®Ø± 90+"
+    }
+  },
+  "creditAssessment": {
+    "title": "ÊŞííã ÇÆÊãÇäí",
+    "subtitle": "ÊŞííã ÇáãÎÇØÑ ÇáÇÆÊãÇäíÉ áÊãæíá ÇáãÔÇÑíÚ ÇáÚŞÇÑíÉ",
+    "newAssessment": "ÊŞííã ÌÏíÏ",
+    "createTitle": "ÊŞííã ÇÆÊãÇäí ÌÏíÏ",
+    "organization": "ÇáãäÙãÉ",
+    "score": "ÇáäÊíÌÉ",
+    "grade": "ÇáÊÕäíİ",
+    "recommendation": "ÇáÊæÕíÉ",
+    "runScoring": "ÊÔÛíá ÇáÊŞííã",
+    "scoring": "ÌÇÑí ÇáÊŞííã...",
+    "scoringSuccess": "Êã ÊŞííã ÇáÇÆÊãÇä ÈäÌÇÍ",
+    "scoringError": "İÔá İí ÊŞííã ÇáÇÆÊãÇä",
+    "createSuccess": "Êã ÅäÔÇÁ ÇáÊŞííã ÇáÇÆÊãÇäí ÈäÌÇÍ",
+    "createError": "İÔá İí ÅäÔÇÁ ÇáÊŞííã ÇáÇÆÊãÇäí",
+    "loadError": "İÔá İí ÊÍãíá ÇáÊŞííãÇÊ ÇáÇÆÊãÇäíÉ. íÑÌì ÇáãÍÇæáÉ ãÑÉ ÃÎÑì.",
+    "noAssessments": "áã íÊã ÇáÚËæÑ Úáì ÊŞííãÇÊ ÇÆÊãÇäíÉ.",
+    "organizationRequired": "ÇáãäÙãÉ ãØáæÈÉ",
+    "viewDetails": "ÚÑÖ ÇáÊİÇÕíá",
+    "scoreBreakdown": "ÊİÕíá ÇáäÊíÌÉ",
+    "categoryScores": "äÊÇÆÌ ÇáİÆÇÊ",
+    "factorDetails": "ÊİÇÕíá ÇáÚæÇãá",
+    "assessmentData": "ÈíÇäÇÊ ÇáÊŞííã",
+    "backToList": "ÇáÚæÏÉ Åáì ÇáÊŞííãÇÊ",
+    "notScored": "ÛíÑ ãõŞíóøã",
+    "unknownOrg": "ãäÙãÉ ÛíÑ ãÚÑæİÉ",
+    "selectOrganization": "ÇÎÊÑ ÇáãäÙãÉ",
+    "statuses": {
+      "draft": "ãÓæÏÉ",
+      "scored": "Êã ÇáÊŞííã",
+      "approved": "ãÚÊãÏ",
+      "referred": "ãÍÇá",
+      "declined": "ãÑİæÖ"
+    },
+    "step": "ÇáÎØæÉ {current} ãä {total}",
+    "nextStep": "ÇáÊÇáí",
+    "prevStep": "ÇáÓÇÈŞ",
+    "submitAssessment": "ÅÑÓÇá ÇáÊŞííã",
+    "categories": {
+      "company_info": "ãÚáæãÇÊ ÇáãäÔÃÉ",
+      "financial_statements": "ÇáŞæÇÆã ÇáãÇáíÉ",
+      "credit_history": "ÇáÓÌá ÇáÇÆÊãÇäí",
+      "project_feasibility": "ÊİÇÕíá ÌÏæì ÇáãÔÑæÚ",
+      "collateral": "ÇáÖãÇä"
+    },
+    "categoryWeights": {
+      "company_info": "5%",
+      "financial_statements": "20%",
+      "credit_history": "20%",
+      "project_feasibility": "50%",
+      "collateral": "5%"
+    },
+    "fields": {
+      "business_activity": "äÔÇØ ÇáãäÔÃÉ",
+      "entity_type": "äæÚ ÇáãäÔÃÉ",
+      "entity_location": "ãæŞÚ ÇáãäÔÃÉ",
+      "years_in_business": "ÚÏÏ ÇáÓäæÇÊ İí ÇáäÔÇØ",
+      "income_diversification": "ÊäæÚ ÇáÏÎá",
+      "audited_financials": "ÇáŞæÇÆã ÇáãÇáíÉ ãÏŞŞÉ",
+      "total_revenue": "ÇáÅíÑÇÏÇÊ ÇáÓäæíÉ (Ñ.Ó)",
+      "operating_cash_flow": "ÇáÊÏİŞÇÊ ÇáäŞÏíÉ ÇáÊÔÛíáíÉ (Ñ.Ó)",
+      "current_liabilities": "ÇáÇáÊÒÇãÇÊ ÇáãÊÏÇæáÉ (Ñ.Ó)",
+      "net_profit": "ÕÇİí ÇáÑÈÍ (Ñ.Ó)",
+      "operating_profit": "ÇáÑÈÍ ÇáÊÔÛíáí (Ñ.Ó)",
+      "finance_costs": "ÊßÇáíİ ÇáÊãæíá (Ñ.Ó)",
+      "total_assets": "ÅÌãÇáí ÇáÃÕæá (Ñ.Ó)",
+      "current_assets": "ÇáÃÕæá ÇáãÊÏÇæáÉ (Ñ.Ó)",
+      "credit_record": "ÇáÓÌá ÇáÇÆÊãÇäí ááãäÔÃÉ",
+      "payment_behavior": "Óáæß ÇáãäÔÃÉ İí ÇáÓÏÇÏ",
+      "payment_delays": "ÊÃÎÑ İí ÇáÓÏÇÏ",
+      "num_delays": "ÚÏÏ ÇáÊÃÎÑÇÊ",
+      "delay_ratio": "äÓÈÉ ÇáÊÃÎÑÇÊ áÅÌãÇáí ÇáÊãæíáÇÊ",
+      "financing_default": "ÊÚËÑ İí Êãæíá",
+      "num_defaults": "ÚÏÏ ÇáÊÚËÑÇÊ",
+      "default_ratio": "äÓÈÉ ÇáÊÚËÑÇÊ Åáì ÇáÊãæíáÇÊ",
+      "bounced_checks": "ÇáÔíßÇÊ ÇáãÑÊÌÚÉ",
+      "lawsuits": "ÇáŞÖÇíÇ ÖÏ ÇáÔÑßÉ",
+      "project_location": "ãæŞÚ ÇáãÔÑæÚ",
+      "has_project_plan": "ãÎØØ ÇáãÔÑæÚ",
+      "has_insurance": "ÇáÊÃãíä Úáì ÇáãÔÑæÚ",
+      "project_type": "äæÚ ÇáãÔÑæÚ",
+      "engineering_firm_class": "ÅÔÑÇİ ãßÊÈ åäÏÓí",
+      "feasibility_study_quality": "ÌÏæì ÇáãÔÑæÚ",
+      "project_net_profit": "ÕÇİí ÑÈÍ ÇáãÔÑæÚ (Ñ.Ó)",
+      "project_total_cost": "ÅÌãÇáí ÊßáİÉ ÇáãÔÑæÚ (Ñ.Ó)",
+      "previous_projects_count": "ÚÏÏ ÇáãÔÇÑíÚ ÇáÓÇÈŞÉ",
+      "property_location": "ãæŞÚ ÇáÚŞÇÑ",
+      "property_type": "äæÚ ÇáÚŞÇÑ",
+      "property_usage": "ãÓÊÎÏã ÇáÚŞÇÑ",
+      "appraisal_1": "ÇáÊŞííã ÇáÃæá (Ñ.Ó)",
+      "appraisal_2": "ÇáÊŞííã ÇáËÇäí (Ñ.Ó)",
+      "financing_amount": "ãÈáÛ ÇáÊãæíá (Ñ.Ó)"
+    },
+    "options": {
+      "business_activity": {
+        "construction": "ÇáÊÔííÏ",
+        "real_estate": "ÇáÃäÔØÉ ÇáÚŞÇÑíÉ",
+        "other": "ÃÎÑì"
+      },
+      "entity_type": {
+        "public_jsc": "ÔÑßÉ ãÓÇåãÉ",
+        "closed_jsc": "ÔÑßÉ ãÓÇåãÉ ãÛáŞÉ",
+        "llc": "ÔÑßÉ ĞÇÊ ãÓÄæáíÉ ãÍÏæÏÉ",
+        "sole_proprietorship": "ãÄÓÓÉ İÑÏíÉ",
+        "single_person": "ÔÑßÉ ÔÎÕ æÇÍÏ",
+        "holding": "ÔÑßÉ ŞÇÈÖÉ"
+      },
+      "location": {
+        "riyadh": "ÇáÑíÇÖ",
+        "jeddah": "ÌÏÉ",
+        "makkah": "ãßÉ ÇáãßÑãÉ",
+        "dammam": "ÇáÏãÇã",
+        "khobar": "ÇáÎÈÑ",
+        "other": "ÃÎÑì"
+      },
+      "years_in_business": {
+        "more_than_10": "ÃßËÑ ãä 10 ÓäæÇÊ",
+        "5_to_10": "ãä 5 Åáì 10 ÓäæÇÊ",
+        "2_to_5": "ãä 2 Åáì 5 ÓäæÇÊ",
+        "less_than_2": "ÃŞá ãä ÓäÊíä"
+      },
+      "income_diversification": {
+        "more_than_2": "ÃßËÑ ãä ãÕÏÑíä",
+        "2": "ãÕÏÑíä",
+        "1": "ãÕÏÑ æÇÍÏ",
+        "0": "áÇ íæÌÏ"
+      },
+      "credit_record": {
+        "excellent": "ããÊÇÒ",
+        "not_applicable": "áÇ íäØÈŞ",
+        "satisfactory": "ãÑÖí",
+        "poor": "ÓíÁ"
+      },
+      "payment_behavior": {
+        "excellent": "ããÊÇÒ",
+        "satisfactory": "ãÑÖí",
+        "poor": "ÓíÁ",
+        "none": "áÇ íæÌÏ"
+      },
+      "payment_delays": {
+        "none": "áÇ íæÌÏ",
+        "30_to_60": "30 Åáì 60 íæã",
+        "60_to_90": "60 Åáì 90 íæã",
+        "more_than_90": "ÃßËÑ ãä 90 íæã"
+      },
+      "num_delays": {
+        "none": "áÇ íæÌÏ",
+        "1": "Êãæíá æÇÍÏ",
+        "up_to_3": "ÍÊì 3 ÊãæíáÇÊ",
+        "more_than_3": "ÃßËÑ ãä 3 ÊãæíáÇÊ"
+      },
+      "delay_ratio": {
+        "0": "0%",
+        "up_to_20": "ÍÊì 20%",
+        "more_than_20": "ÃßËÑ ãä 20%"
+      },
+      "financing_default": {
+        "none": "áÇ íæÌÏ",
+        "settled": "ãÓÏÏ",
+        "active": "ŞÇÆã"
+      },
+      "num_defaults": {
+        "none": "áÇ íæÌÏ",
+        "1": "Êãæíá æÇÍÏ",
+        "more_than_1": "ÃßËÑ ãä æÇÍÏ"
+      },
+      "default_ratio": {
+        "0": "0%",
+        "up_to_20": "ÍÊì 20%",
+        "more_than_20": "ÃßËÑ ãä 20%"
+      },
+      "bounced_checks": {
+        "none": "áÇ íæÌÏ",
+        "settled": "ãÓÏÏÉ",
+        "active": "ŞÇÆãÉ"
+      },
+      "lawsuits": {
+        "none": "áÇ íæÌÏ",
+        "settled": "ãÓÏÏÉ",
+        "active": "ŞÇÆãÉ"
+      },
+      "project_type": {
+        "commercial": "ÊÌÇÑí",
+        "residential": "Óßäí",
+        "mixed": "ãÎÊáØ"
+      },
+      "engineering_firm_class": {
+        "class_1_2": "ÏÑÌÉ Ãæáì Ãæ ËÇäíÉ",
+        "class_3_5": "ÏÑÌÉ ËÇáËÉ Åáì ÎÇãÓÉ",
+        "unclassified": "ÛíÑ ãÕäİ",
+        "none": "áÇ íæÌÏ ãßÊÈ ãÔÑİ"
+      },
+      "feasibility_study_quality": {
+        "excellent": "ããÊÇÒÉ",
+        "average": "ãÊæÓØÉ",
+        "acceptable": "ãŞÈæáÉ",
+        "none": "áÇ íæÌÏ"
+      },
+      "previous_projects_count": {
+        "more_than_3": "ÃßËÑ ãä 3 ãÔÇÑíÚ",
+        "1_to_3": "ãä 1 Åáì 3 ãÔÇÑíÚ",
+        "none": "áÇ íæÌÏ"
+      },
+      "property_type": {
+        "commercial_building": "ãÈäì ÊÌÇÑí",
+        "residential_building": "ãÈäì Óßäí",
+        "residential_land": "ÃÑÖ ÓßäíÉ",
+        "commercial_land": "ÃÑÖ ÊÌÇÑíÉ",
+        "apartment": "ÔŞÉ",
+        "raw_land": "ÃÑÖ ÎÇã",
+        "agricultural_land": "ÃÑÖ ÒÑÇÚíÉ",
+        "other": "ÃÎÑì"
+      },
+      "property_usage": {
+        "rented": "ãÄÌÑÉ",
+        "not_applicable": "áÇ íäØÈŞ",
+        "owner_occupied": "ÇáãÇáß",
+        "investment": "ãÓÊËãÑÉ"
+      }
+    },
+    "recommendations": {
+      "approve": "ãæÇİŞÉ",
+      "approve_with_conditions": "ãæÇİŞÉ ÈÔÑæØ",
+      "refer": "ÅÍÇáÉ Åáì ÇááÌäÉ",
+      "refer_or_decline": "ÅÍÇáÉ / ÑİÖ",
+      "decline": "ÑİÖ"
+    },
+    "grades": {
+      "AA": "ãÎÇØÑ ÖÆíáÉ",
+      "A": "ãÎÇØÑ ãäÎİÖÉ",
+      "BB": "ãÎÇØÑ ãÚÊÏáÉ",
+      "B": "ãÎÇØÑ ãŞÈæáÉ",
+      "CC": "ãÎÇØÑ ãÑÊİÚÉ",
+      "C": "ãÎÇØÑ ÚÇáíÉ",
+      "F": "ÛíÑ ãŞÈæá"
+    },
+    "computedRatios": {
+      "ocf_ratio": "äÓÈÉ ÇáÊÏİŞÇÊ ÇáäŞÏíÉ ÇáÊÔÛíáíÉ",
+      "net_profit_margin": "äÓÈÉ ÕÇİí ÇáÑÈÍíÉ",
+      "operating_profit_margin": "äÓÈÉ ÇáÑÈÍíÉ ÇáÊÔÛíáíÉ",
+      "interest_coverage_ratio": "äÓÈÉ ÊÛØíÉ ÇáİæÇÆÏ",
+      "return_on_assets": "äÓÈÉ ÇáÚÇÆÏ Úáì ÇáÃÕæá",
+      "current_ratio": "äÓÈÉ ÇáÊÏÇæá",
+      "project_profitability": "ÑÈÍíÉ ÇáãÔÑæÚ",
+      "appraisal_difference": "äÓÈÉ ÇáÇÎÊáÇİ Èíä ÇáÊŞííãíä",
+      "ltv_ratio": "äÓÈÉ ÇáÊãæíá Åáì ŞíãÉ ÇáÖãÇä",
+      "deferred_price_ratio": "äÓÈÉ ÇáËãä ÇáãÄÌá Åáì ŞíãÉ ÇáÖãÇä"
     }
   }
 }

@@ -89,7 +89,8 @@
     "logging": "Logging...",
     "loadingSummary": "Loading summary...",
     "accounts": "{count, plural, one {# account} other {# accounts}}",
-    "loadError": "Failed to load data. Please try again."
+    "loadError": "Failed to load data. Please try again.",
+    "credit_assessment": "Credit Assessment"
   },
   "auth": {
     "email": "Email",
@@ -551,6 +552,255 @@
       "par30": "PAR 30+",
       "par60": "PAR 60+",
       "par90": "PAR 90+"
+    }
+  },
+  "creditAssessment": {
+    "title": "Credit Assessment",
+    "subtitle": "Evaluate credit risk for real estate project financing",
+    "newAssessment": "New Assessment",
+    "createTitle": "New Credit Assessment",
+    "organization": "Organization",
+    "score": "Score",
+    "grade": "Grade",
+    "recommendation": "Recommendation",
+    "runScoring": "Run Scoring",
+    "scoring": "Scoring...",
+    "scoringSuccess": "Credit assessment scored successfully",
+    "scoringError": "Failed to score credit assessment",
+    "createSuccess": "Credit assessment created successfully",
+    "createError": "Failed to create credit assessment",
+    "loadError": "Failed to load credit assessments. Please try again.",
+    "noAssessments": "No credit assessments found.",
+    "organizationRequired": "Organization is required",
+    "viewDetails": "View Details",
+    "scoreBreakdown": "Score Breakdown",
+    "categoryScores": "Category Scores",
+    "factorDetails": "Factor Details",
+    "assessmentData": "Assessment Data",
+    "backToList": "Back to Assessments",
+    "notScored": "Not Scored",
+    "unknownOrg": "Unknown Organization",
+    "selectOrganization": "Select organization",
+    "statuses": {
+      "draft": "Draft",
+      "scored": "Scored",
+      "approved": "Approved",
+      "referred": "Referred",
+      "declined": "Declined"
+    },
+    "step": "Step {current} of {total}",
+    "nextStep": "Next",
+    "prevStep": "Previous",
+    "submitAssessment": "Submit Assessment",
+    "categories": {
+      "company_info": "Company Information",
+      "financial_statements": "Financial Statements",
+      "credit_history": "Credit History",
+      "project_feasibility": "Project Feasibility",
+      "collateral": "Collateral"
+    },
+    "categoryWeights": {
+      "company_info": "5%",
+      "financial_statements": "20%",
+      "credit_history": "20%",
+      "project_feasibility": "50%",
+      "collateral": "5%"
+    },
+    "fields": {
+      "business_activity": "Business Activity",
+      "entity_type": "Entity Type",
+      "entity_location": "Entity Location",
+      "years_in_business": "Years in Business",
+      "income_diversification": "Income Diversification",
+      "audited_financials": "Audited Financial Statements",
+      "total_revenue": "Annual Revenue (SAR)",
+      "operating_cash_flow": "Operating Cash Flow (SAR)",
+      "current_liabilities": "Current Liabilities (SAR)",
+      "net_profit": "Net Profit (SAR)",
+      "operating_profit": "Operating Profit (SAR)",
+      "finance_costs": "Finance Costs (SAR)",
+      "total_assets": "Total Assets (SAR)",
+      "current_assets": "Current Assets (SAR)",
+      "credit_record": "Company Credit Record",
+      "payment_behavior": "Payment Behavior",
+      "payment_delays": "Payment Delays",
+      "num_delays": "Number of Delays",
+      "delay_ratio": "Delay Ratio to Total Financing",
+      "financing_default": "Financing Default",
+      "num_defaults": "Number of Defaults",
+      "default_ratio": "Default Ratio to Total Financing",
+      "bounced_checks": "Bounced Checks",
+      "lawsuits": "Lawsuits Against Company",
+      "project_location": "Project Location",
+      "has_project_plan": "Project Plan Available",
+      "has_insurance": "Project Insurance",
+      "project_type": "Project Type",
+      "engineering_firm_class": "Engineering Firm Supervision",
+      "feasibility_study_quality": "Feasibility Study Quality",
+      "project_net_profit": "Project Net Profit (SAR)",
+      "project_total_cost": "Project Total Cost (SAR)",
+      "previous_projects_count": "Previous Projects Count",
+      "property_location": "Property Location",
+      "property_type": "Property Type",
+      "property_usage": "Property Usage",
+      "appraisal_1": "Appraisal 1 (SAR)",
+      "appraisal_2": "Appraisal 2 (SAR)",
+      "financing_amount": "Financing Amount (SAR)"
+    },
+    "options": {
+      "business_activity": {
+        "construction": "Construction",
+        "real_estate": "Real Estate Activities",
+        "other": "Other"
+      },
+      "entity_type": {
+        "public_jsc": "Public Joint Stock Company",
+        "closed_jsc": "Closed Joint Stock Company",
+        "llc": "Limited Liability Company",
+        "sole_proprietorship": "Sole Proprietorship",
+        "single_person": "Single-Person Company",
+        "holding": "Holding Company"
+      },
+      "location": {
+        "riyadh": "Riyadh",
+        "jeddah": "Jeddah",
+        "makkah": "Makkah",
+        "dammam": "Dammam",
+        "khobar": "Khobar",
+        "other": "Other"
+      },
+      "years_in_business": {
+        "more_than_10": "More than 10 years",
+        "5_to_10": "5 to 10 years",
+        "2_to_5": "2 to 5 years",
+        "less_than_2": "Less than 2 years"
+      },
+      "income_diversification": {
+        "more_than_2": "More than 2 sources",
+        "2": "2 sources",
+        "1": "1 source",
+        "0": "None"
+      },
+      "credit_record": {
+        "excellent": "Excellent",
+        "not_applicable": "Not Applicable",
+        "satisfactory": "Satisfactory",
+        "poor": "Poor"
+      },
+      "payment_behavior": {
+        "excellent": "Excellent",
+        "satisfactory": "Satisfactory",
+        "poor": "Poor",
+        "none": "No History"
+      },
+      "payment_delays": {
+        "none": "None",
+        "30_to_60": "30 to 60 days",
+        "60_to_90": "60 to 90 days",
+        "more_than_90": "More than 90 days"
+      },
+      "num_delays": {
+        "none": "None",
+        "1": "1 financing",
+        "up_to_3": "Up to 3 financings",
+        "more_than_3": "More than 3 financings"
+      },
+      "delay_ratio": {
+        "0": "0%",
+        "up_to_20": "Up to 20%",
+        "more_than_20": "More than 20%"
+      },
+      "financing_default": {
+        "none": "None",
+        "settled": "Settled/Paid",
+        "active": "Active"
+      },
+      "num_defaults": {
+        "none": "None",
+        "1": "1 financing",
+        "more_than_1": "More than 1"
+      },
+      "default_ratio": {
+        "0": "0%",
+        "up_to_20": "Up to 20%",
+        "more_than_20": "More than 20%"
+      },
+      "bounced_checks": {
+        "none": "None",
+        "settled": "Settled/Paid",
+        "active": "Active"
+      },
+      "lawsuits": {
+        "none": "None",
+        "settled": "Settled/Paid",
+        "active": "Active"
+      },
+      "project_type": {
+        "commercial": "Commercial",
+        "residential": "Residential",
+        "mixed": "Mixed-use"
+      },
+      "engineering_firm_class": {
+        "class_1_2": "1st or 2nd class firm",
+        "class_3_5": "3rd to 5th class firm",
+        "unclassified": "Unclassified firm",
+        "none": "No supervising firm"
+      },
+      "feasibility_study_quality": {
+        "excellent": "Excellent",
+        "average": "Average",
+        "acceptable": "Acceptable",
+        "none": "None"
+      },
+      "previous_projects_count": {
+        "more_than_3": "More than 3 projects",
+        "1_to_3": "1 to 3 projects",
+        "none": "None"
+      },
+      "property_type": {
+        "commercial_building": "Commercial Building",
+        "residential_building": "Residential Building",
+        "residential_land": "Residential Land",
+        "commercial_land": "Commercial Land",
+        "apartment": "Apartment",
+        "raw_land": "Raw Land",
+        "agricultural_land": "Agricultural Land",
+        "other": "Other"
+      },
+      "property_usage": {
+        "rented": "Rented/Leased",
+        "not_applicable": "Not Applicable",
+        "owner_occupied": "Owner-Occupied",
+        "investment": "Under Development/Investment"
+      }
+    },
+    "recommendations": {
+      "approve": "Approve",
+      "approve_with_conditions": "Approve with Conditions",
+      "refer": "Refer to Committee",
+      "refer_or_decline": "Refer / Decline",
+      "decline": "Decline"
+    },
+    "grades": {
+      "AA": "Minimal Risk",
+      "A": "Low Risk",
+      "BB": "Moderate Risk",
+      "B": "Acceptable Risk",
+      "CC": "Elevated Risk",
+      "C": "High Risk",
+      "F": "Unacceptable"
+    },
+    "computedRatios": {
+      "ocf_ratio": "Operating Cash Flow Ratio",
+      "net_profit_margin": "Net Profit Margin",
+      "operating_profit_margin": "Operating Profit Margin",
+      "interest_coverage_ratio": "Interest Coverage Ratio",
+      "return_on_assets": "Return on Assets",
+      "current_ratio": "Current Ratio",
+      "project_profitability": "Project Profitability",
+      "appraisal_difference": "Appraisal Difference",
+      "ltv_ratio": "Loan-to-Value Ratio",
+      "deferred_price_ratio": "Deferred Price Ratio"
     }
   }
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/CamelLabSA/M360/backend/internal/collection"
 	"github.com/CamelLabSA/M360/backend/internal/committee"
 	"github.com/CamelLabSA/M360/backend/internal/contact"
+	"github.com/CamelLabSA/M360/backend/internal/credit"
 	"github.com/CamelLabSA/M360/backend/internal/document"
 	"github.com/CamelLabSA/M360/backend/internal/facility"
 	"github.com/CamelLabSA/M360/backend/internal/integration"
@@ -143,6 +144,12 @@ func main() {
 	// Saudi integrations (SIMAH, Bayan, Nafath, Yaqeen, Watheq)
 	integrationHandler := integration.New()
 	integrationHandler.Register(api, authMW)
+
+	// Credit assessment
+	creditRepo := credit.NewRepository(pool)
+	creditSvc := credit.NewService(creditRepo)
+	creditHandler := credit.NewHandler(creditSvc)
+	creditHandler.Register(api, authMW)
 
 	// Reporting & analytics
 	reportingRepo := reporting.NewRepository(pool)

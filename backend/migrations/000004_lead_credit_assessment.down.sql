@@ -1,0 +1,2 @@
+-- PostgreSQL does not support removing values from ENUMs without recreating the type.
+-- This migration is intentionally left as a no-op for safety.
