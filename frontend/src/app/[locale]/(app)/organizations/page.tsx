@@ -38,7 +38,6 @@ interface CreateOrganizationInput {
   name_en: string;
   name_ar: string;
   cr_number: string;
-  vat_number?: string;
   industry: string;
   city: string;
   address: string;
@@ -51,7 +50,6 @@ const emptyForm = (): CreateOrganizationInput => ({
   name_en: "",
   name_ar: "",
   cr_number: "",
-  vat_number: "",
   industry: "",
   city: "",
   address: "",
@@ -251,13 +249,12 @@ export default function OrganizationsPage() {
             {/* Single name field */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("name")} *
+                {t("name")}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="شركة الرياض للتطوير"
               />
@@ -266,14 +263,13 @@ export default function OrganizationsPage() {
             {/* CR Number with Watheq lookup */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("crNumber")} *
+                {t("crNumber")}
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={formData.cr_number}
                   onChange={(e) => setFormData({ ...formData, cr_number: e.target.value })}
-                  required
                   className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   placeholder="1234567890"
                 />
@@ -289,29 +285,14 @@ export default function OrganizationsPage() {
               </div>
             </div>
 
-            {/* VAT number */}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("taxId")}
-              </label>
-              <input
-                type="text"
-                value={formData.vat_number}
-                onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="300000000000003"
-              />
-            </div>
-
             {/* Requested product dropdown */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("requestedProduct")} *
+                {t("requestedProduct")}
               </label>
               <select
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="">--</option>
@@ -326,13 +307,12 @@ export default function OrganizationsPage() {
             {/* City */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("city")} *
+                {t("city")}
               </label>
               <input
                 type="text"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="Riyadh"
               />
@@ -341,13 +321,12 @@ export default function OrganizationsPage() {
             {/* Address */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("address")} *
+                {tc("address")}
               </label>
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="123 Business Street, Riyadh 11543"
               />
@@ -356,13 +335,12 @@ export default function OrganizationsPage() {
             {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("phone")} *
+                {tc("phone")}
               </label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="+966 11 123 4567"
               />
@@ -371,13 +349,12 @@ export default function OrganizationsPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("email")} *
+                {tc("email")}
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="info@company.com"
               />
@@ -432,10 +409,6 @@ function OrganizationDetails({ organization }: { organization: Organization }) {
         <div>
           <p className="text-sm text-stone-600">{t("crNumber")}</p>
           <p className="font-medium">{organization.cr_number}</p>
-        </div>
-        <div>
-          <p className="text-sm text-stone-600">{t("taxId")}</p>
-          <p className="font-medium">{organization.vat_number || "—"}</p>
         </div>
         <div>
           <p className="text-sm text-stone-600">{t("requestedProduct")}</p>
