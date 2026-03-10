@@ -12,65 +12,10 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { OrgImportModal } from "@/components/organizations/OrgImportModal";
 
-// ---------------------------------------------------------------------------
-// Watheq Full Report types (mirrors backend WatheqFullReport)
-// ---------------------------------------------------------------------------
-
-interface WatheqActivity {
-  id?: string;
-  name?: string;
-}
-
-interface WatheqCRCapital {
-  total?: number;
-  currencyName?: string;
-}
-
-interface WatheqContactInfo {
-  phone?: string;
-  email?: string;
-  fax?: string;
-}
-
-interface WatheqECommerce {
-  url?: string;
-  status?: string;
-}
-
-interface WatheqCRFullInfo {
-  crNationalNumber?: string;
-  crNumber?: string;
-  name?: string;
-  crCapital?: WatheqCRCapital;
-  activities?: WatheqActivity[];
-  contactInfo?: WatheqContactInfo;
-  eCommerce?: WatheqECommerce;
-}
-
-interface WatheqCapital {
-  currencyId?: string;
-  currencyName?: string;
-  total?: number;
-}
-
-interface WatheqNationalAddress {
-  buildingNumber?: string;
-  street?: string;
-  district?: string;
-  city?: string;
-  postCode?: string;
-  regionName?: string;
-}
-
-interface WatheqFullReport {
-  cr_number: string;
-  registration?: WatheqCRFullInfo;
-  owners?: unknown[];
-  managers?: unknown[];
-  branches?: unknown[];
-  capital?: WatheqCapital;
-  addresses?: WatheqNationalAddress[];
-  errors?: Record<string, string>;
+interface Product {
+  id: string;
+  name_en: string;
+  name_ar: string;
 }
 
 interface Organization {
@@ -84,9 +29,7 @@ interface Organization {
   address: string;
   phone: string;
   email: string;
-  website: string;
-  annual_revenue: number;
-  employee_count: number;
+  contact_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -101,10 +44,21 @@ interface CreateOrganizationInput {
   address: string;
   phone: string;
   email: string;
-  website?: string;
-  annual_revenue?: number;
-  employee_count?: number;
+  contact_name?: string;
 }
+
+const emptyForm = (): CreateOrganizationInput => ({
+  name_en: "",
+  name_ar: "",
+  cr_number: "",
+  vat_number: "",
+  industry: "",
+  city: "",
+  address: "",
+  phone: "",
+  email: "",
+  contact_name: "",
+});
 
 export default function OrganizationsPage() {
   const t = useTranslations("organizations");
@@ -114,76 +68,38 @@ export default function OrganizationsPage() {
   const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [formData, setFormData] = useState<CreateOrganizationInput>({
-    name_en: "",
-    name_ar: "",
-    cr_number: "",
-    vat_number: "",
-    industry: "",
-    city: "",
-    address: "",
-    phone: "",
-    email: "",
-    website: "",
-    annual_revenue: 0,
-    employee_count: 0,
-  });
-
+  const [name, setName] = useState("");
+  const [formData, setFormData] = useState<CreateOrganizationInput>(emptyForm());
   const [isLookingUp, setIsLookingUp] = useState(false);
+
+  const { data: products } = useApiList<Product>("/products", { limit: 100 });
 
   const handleLookupCR = async () => {
     const crNumber = formData.cr_number.trim();
     if (!crNumber) return;
-
     setIsLookingUp(true);
     try {
       const token = localStorage.getItem("m360_token") || "";
-      const report = await api<WatheqFullReport>(
+      const report = await api<{ cr_number: string; registration?: { name?: string; contactInfo?: { phone?: string; email?: string } }; addresses?: { city?: string; buildingNumber?: string; street?: string; district?: string }[] }>(
         `/integrations/watheq/${crNumber}/full`,
         { token }
       );
-
       const updated: Partial<CreateOrganizationInput> = {};
-
       if (report.registration?.name) {
+        setName(report.registration.name);
         updated.name_en = report.registration.name;
         updated.name_ar = report.registration.name;
       }
-
-      if (report.registration?.activities?.length) {
-        updated.industry = report.registration.activities[0].name || "";
-      }
-
       if (report.addresses?.length) {
         const addr = report.addresses[0];
         if (addr.city) updated.city = addr.city;
         const parts = [addr.buildingNumber, addr.street, addr.district].filter(Boolean);
         if (parts.length) updated.address = parts.join(", ");
       }
-
-      const capital =
-        report.registration?.crCapital?.total ?? report.capital?.total;
-      if (capital) {
-        updated.annual_revenue = capital;
-      }
-
-      if (report.registration?.contactInfo?.phone) {
-        updated.phone = report.registration.contactInfo.phone;
-      }
-      if (report.registration?.contactInfo?.email) {
-        updated.email = report.registration.contactInfo.email;
-      }
-      if (report.registration?.eCommerce?.url) {
-        updated.website = report.registration.eCommerce.url;
-      }
-
+      if (report.registration?.contactInfo?.phone) updated.phone = report.registration.contactInfo.phone;
+      if (report.registration?.contactInfo?.email) updated.email = report.registration.contactInfo.email;
       setFormData((prev) => ({ ...prev, ...updated }));
-
-      if (report.errors && Object.keys(report.errors).length > 0) {
-        toast.warning(t("lookupPartial"));
-      } else {
-        toast.success(t("lookupSuccess"));
-      }
+      toast.success(t("lookupSuccess"));
     } catch {
       toast.error(t("lookupError"));
     } finally {
@@ -202,27 +118,14 @@ export default function OrganizationsPage() {
   const { mutate: createOrganization, isSubmitting: isCreating } =
     useApiMutation("/organizations", "POST");
 
-  const handleCreateOrganization = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      await createOrganization(formData);
+      await createOrganization({ ...formData, name_en: name, name_ar: name });
       toast.success(t("createSuccess"));
       setIsModalOpen(false);
-      setFormData({
-        name_en: "",
-        name_ar: "",
-        cr_number: "",
-        vat_number: "",
-        industry: "",
-        city: "",
-        address: "",
-        phone: "",
-        email: "",
-        website: "",
-        annual_revenue: 0,
-        employee_count: 0,
-      });
+      setName("");
+      setFormData(emptyForm());
       refetchOrganizations();
     } catch {
       toast.error(t("createError"));
@@ -232,61 +135,44 @@ export default function OrganizationsPage() {
   const columns: Column<Organization>[] = [
     {
       key: "name_en",
-      header: t("title"),
-      render: (item) => (
-        <span className="font-medium">{(item as Organization).name_en}</span>
-      ),
+      header: t("name"),
+      render: (item) => <span className="font-medium">{item.name_ar || item.name_en}</span>,
     },
     {
       key: "cr_number",
       header: t("crNumber"),
-      render: (item) => <span>{(item as Organization).cr_number}</span>,
+      render: (item) => <span className="font-mono text-sm">{item.cr_number}</span>,
     },
     {
       key: "industry",
-      header: t("industry"),
-      render: (item) => <span>{(item as Organization).industry}</span>,
+      header: t("requestedProduct"),
+      render: (item) => <span>{item.industry}</span>,
+    },
+    {
+      key: "contact_name",
+      header: t("contactName"),
+      render: (item) => <span className="text-stone-600">{item.contact_name || "—"}</span>,
     },
     {
       key: "city",
       header: t("city"),
-      render: (item) => <span>{(item as Organization).city}</span>,
-    },
-    {
-      key: "annual_revenue",
-      header: tc("amount"),
-      render: (item) => (
-        <span className="font-semibold">
-          {new Intl.NumberFormat("en-SA", {
-            style: "currency",
-            currency: "SAR",
-            notation: "compact",
-          }).format((item as Organization).annual_revenue || 0)}
-        </span>
-      ),
+      render: (item) => <span>{item.city}</span>,
     },
     {
       key: "created_at",
       header: tc("date"),
       render: (item) => (
         <span className="text-sm text-stone-600">
-          {new Date((item as Organization).created_at).toLocaleDateString()}
+          {new Date(item.created_at).toLocaleDateString()}
         </span>
       ),
     },
   ];
 
-  const handleRowClick = (org: Organization) => {
-    setExpandedOrgId(expandedOrgId === org.id ? null : org.id);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <PageHeader
-          title={t("title")}
-          description={t("subtitle")}
-        />
+        <PageHeader title={t("title")} description={t("subtitle")} />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsImportOpen(true)}
@@ -327,7 +213,7 @@ export default function OrganizationsPage() {
             columns={columns}
             data={organizations}
             isLoading={isLoadingOrganizations}
-            onRowClick={handleRowClick}
+            onRowClick={(org) => setExpandedOrgId(expandedOrgId === org.id ? null : org.id)}
             emptyMessage={t("emptyTable")}
             searchable
             onSearch={(q) => { setSearchQuery(q); setPage((p) => ({ ...p, offset: 0 })); }}
@@ -347,9 +233,7 @@ export default function OrganizationsPage() {
         <div className="bg-white rounded-lg border border-stone-200 p-6">
           {organizations.find((org) => org.id === expandedOrgId) && (
             <OrganizationDetails
-              organization={organizations.find(
-                (org) => org.id === expandedOrgId
-              )!}
+              organization={organizations.find((org) => org.id === expandedOrgId)!}
             />
           )}
         </div>
@@ -361,43 +245,25 @@ export default function OrganizationsPage() {
         onImported={() => { setIsImportOpen(false); refetchOrganizations(); }}
       />
 
-      <Modal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={t("newOrg")}
-      >
-        <form onSubmit={handleCreateOrganization} className="space-y-4">
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={t("newOrg")}>
+        <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            {/* Single name field */}
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("nameEn")} *
+                {t("name")} *
               </label>
               <input
                 type="text"
-                value={formData.name_en}
-                onChange={(e) =>
-                  setFormData({ ...formData, name_en: e.target.value })
-                }
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Company Inc"
+                placeholder="شركة الرياض للتطوير"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("nameAr")} *
-              </label>
-              <input
-                type="text"
-                value={formData.name_ar}
-                onChange={(e) =>
-                  setFormData({ ...formData, name_ar: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="شركة"
-              />
-            </div>
-
+            {/* CR Number with Watheq lookup */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t("crNumber")} *
@@ -406,9 +272,8 @@ export default function OrganizationsPage() {
                 <input
                   type="text"
                   value={formData.cr_number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cr_number: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, cr_number: e.target.value })}
+                  required
                   className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   placeholder="1234567890"
                 />
@@ -418,16 +283,13 @@ export default function OrganizationsPage() {
                   onClick={handleLookupCR}
                   className="flex items-center gap-1.5 px-3 py-2 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  {isLookingUp ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Search size={16} />
-                  )}
+                  {isLookingUp ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                   {isLookingUp ? t("lookupLoading") : t("lookupCR")}
                 </button>
               </div>
             </div>
 
+            {/* VAT number */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t("taxId")}
@@ -435,29 +297,33 @@ export default function OrganizationsPage() {
               <input
                 type="text"
                 value={formData.vat_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, vat_number: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="300000000000003"
               />
             </div>
 
+            {/* Requested product dropdown */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("industry")} *
+                {t("requestedProduct")} *
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.industry}
-                onChange={(e) =>
-                  setFormData({ ...formData, industry: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Manufacturing"
-              />
+              >
+                <option value="">--</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.name_en}>
+                    {p.name_ar || p.name_en}
+                  </option>
+                ))}
+              </select>
             </div>
 
+            {/* City */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t("city")} *
@@ -465,14 +331,14 @@ export default function OrganizationsPage() {
               <input
                 type="text"
                 value={formData.city}
-                onChange={(e) =>
-                  setFormData({ ...formData, city: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="Riyadh"
               />
             </div>
 
+            {/* Address */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {tc("address")} *
@@ -480,14 +346,14 @@ export default function OrganizationsPage() {
               <input
                 type="text"
                 value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="123 Business Street, Riyadh 11543"
               />
             </div>
 
+            {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {tc("phone")} *
@@ -495,14 +361,14 @@ export default function OrganizationsPage() {
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="+966 11 123 4567"
               />
             </div>
 
+            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {tc("email")} *
@@ -510,62 +376,24 @@ export default function OrganizationsPage() {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder="info@company.com"
               />
             </div>
 
-            <div>
+            {/* Contact person name */}
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("website")}
+                {t("contactName")}
               </label>
               <input
-                type="url"
-                value={formData.website}
-                onChange={(e) =>
-                  setFormData({ ...formData, website: e.target.value })
-                }
+                type="text"
+                value={formData.contact_name}
+                onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="https://www.company.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("annualRevenue")}
-              </label>
-              <input
-                type="number"
-                value={formData.annual_revenue}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    annual_revenue: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("employeeCount")}
-              </label>
-              <input
-                type="number"
-                value={formData.employee_count}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    employee_count: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="0"
+                placeholder="محمد الأحمد"
               />
             </div>
           </div>
@@ -573,7 +401,7 @@ export default function OrganizationsPage() {
           <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => { setIsModalOpen(false); setName(""); setFormData(emptyForm()); }}
               className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
               {tc("cancel")}
@@ -597,92 +425,45 @@ function OrganizationDetails({ organization }: { organization: Organization }) {
   const tc = useTranslations("common");
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">{organization.name_en}</h3>
-          <p className="text-sm text-stone-500 mt-1">{organization.name_ar}</p>
-        </div>
+      <div>
+        <h3 className="text-lg font-semibold">{organization.name_ar || organization.name_en}</h3>
       </div>
-
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div>
           <p className="text-sm text-stone-600">{t("crNumber")}</p>
           <p className="font-medium">{organization.cr_number}</p>
         </div>
-
         <div>
           <p className="text-sm text-stone-600">{t("taxId")}</p>
           <p className="font-medium">{organization.vat_number || "—"}</p>
         </div>
-
         <div>
-          <p className="text-sm text-stone-600">{t("industry")}</p>
+          <p className="text-sm text-stone-600">{t("requestedProduct")}</p>
           <p className="font-medium">{organization.industry}</p>
         </div>
-
+        <div>
+          <p className="text-sm text-stone-600">{t("contactName")}</p>
+          <p className="font-medium">{organization.contact_name || "—"}</p>
+        </div>
         <div>
           <p className="text-sm text-stone-600">{t("city")}</p>
           <p className="font-medium">{organization.city}</p>
         </div>
-
         <div>
           <p className="text-sm text-stone-600">{tc("phone")}</p>
           <p className="font-medium">{organization.phone}</p>
         </div>
-
         <div>
           <p className="text-sm text-stone-600">{tc("email")}</p>
           <p className="font-medium">{organization.email}</p>
         </div>
-
         <div className="md:col-span-3">
           <p className="text-sm text-stone-600">{tc("address")}</p>
           <p className="font-medium">{organization.address}</p>
         </div>
-
-        {organization.website && (
-          <div className="md:col-span-3">
-            <p className="text-sm text-stone-600">{tc("website")}</p>
-            <a
-              href={organization.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-teal-600 hover:text-teal-700"
-            >
-              {organization.website}
-            </a>
-          </div>
-        )}
-
-        <div>
-          <p className="text-sm text-stone-600">{tc("amount")}</p>
-          <p className="font-medium">
-            {new Intl.NumberFormat("en-SA", {
-              style: "currency",
-              currency: "SAR",
-            }).format(organization.annual_revenue || 0)}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-stone-600">{tc("employeeCount")}</p>
-          <p className="font-medium">
-            {organization.employee_count?.toLocaleString() || "—"}
-          </p>
-        </div>
-
         <div>
           <p className="text-sm text-stone-600">{tc("date")}</p>
-          <p className="font-medium">
-            {new Date(organization.created_at).toLocaleDateString()}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-stone-600">{tc("lastUpdated")}</p>
-          <p className="font-medium">
-            {new Date(organization.updated_at).toLocaleDateString()}
-          </p>
+          <p className="font-medium">{new Date(organization.created_at).toLocaleDateString()}</p>
         </div>
       </div>
     </div>
