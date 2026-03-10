@@ -74,8 +74,8 @@ export const FACILITIES = [
 
 // ── Committee packages ─────────────────────────────────────────────────────
 export const COMMITTEE_PACKAGES = [
-  { id: "com-001", application_id: "app-003", prepared_by: "u-004", risk_score: 68, recommendation: "يوصى بالموافقة مع اشتراط ضمانات إضافية", financial_analysis: { revenue: 2500000, net_profit: 400000, dscr: 1.8 }, status: "pending",  decision: "pending",  decision_date: null,                   conditions: null, votes_for: 2, votes_against: 0, quorum_required: 3, votes: [ { id: "v-001", package_id: "com-001", voter_id: "u-001", decision: "approve",                   comments: "الملف جيد",                  voted_at: "2026-03-05T09:00:00Z" }, { id: "v-002", package_id: "com-001", voter_id: "u-002", decision: "approve_with_conditions", comments: "يشترط ضمان إضافي",           voted_at: "2026-03-05T10:00:00Z" } ], created_at: "2026-03-04T00:00:00Z", updated_at: "2026-03-05T00:00:00Z" },
-  { id: "com-002", application_id: "app-006", prepared_by: "u-004", risk_score: 82, recommendation: "يُنصح بالرفض بسبب ارتفاع نسبة المديونية",  financial_analysis: { revenue: 8000000, net_profit: 600000, dscr: 1.1 }, status: "rejected", decision: "rejected", decision_date: "2026-01-18T00:00:00Z", conditions: null, votes_for: 0, votes_against: 3, quorum_required: 3, votes: [ { id: "v-003", package_id: "com-002", voter_id: "u-001", decision: "reject",                    comments: "نسبة المديونية مرتفعة جداً", voted_at: "2026-01-18T08:00:00Z" }, { id: "v-004", package_id: "com-002", voter_id: "u-002", decision: "reject",                    comments: "لا يستوفي معايير DSCR",      voted_at: "2026-01-18T09:00:00Z" }, { id: "v-005", package_id: "com-002", voter_id: "u-004", decision: "reject",                    comments: "مخاطر عالية",                voted_at: "2026-01-18T10:00:00Z" } ], created_at: "2026-01-15T00:00:00Z", updated_at: "2026-01-18T00:00:00Z" },
+  { id: "com-001", application_id: "app-003", credit_assessment_id: "ca-001", prepared_by: "u-004", risk_score: 68, recommendation: "يوصى بالموافقة مع اشتراط ضمانات إضافية", financial_analysis: { revenue: 2500000, net_profit: 400000, dscr: 1.8 }, status: "pending",  decision: "pending",  decision_date: null,                   conditions: null, votes_for: 2, votes_against: 0, quorum_required: 3, votes: [ { id: "v-001", package_id: "com-001", voter_id: "u-001", decision: "approve",                   comments: "الملف جيد",                  voted_at: "2026-03-05T09:00:00Z" }, { id: "v-002", package_id: "com-001", voter_id: "u-002", decision: "approve_with_conditions", comments: "يشترط ضمان إضافي",           voted_at: "2026-03-05T10:00:00Z" } ], created_at: "2026-03-04T00:00:00Z", updated_at: "2026-03-05T00:00:00Z" },
+  { id: "com-002", application_id: "app-006", credit_assessment_id: "ca-002", prepared_by: "u-004", risk_score: 82, recommendation: "يُنصح بالرفض بسبب ارتفاع نسبة المديونية",  financial_analysis: { revenue: 8000000, net_profit: 600000, dscr: 1.1 }, status: "rejected", decision: "rejected", decision_date: "2026-01-18T00:00:00Z", conditions: null, votes_for: 0, votes_against: 3, quorum_required: 3, votes: [ { id: "v-003", package_id: "com-002", voter_id: "u-001", decision: "reject",                    comments: "نسبة المديونية مرتفعة جداً", voted_at: "2026-01-18T08:00:00Z" }, { id: "v-004", package_id: "com-002", voter_id: "u-002", decision: "reject",                    comments: "لا يستوفي معايير DSCR",      voted_at: "2026-01-18T09:00:00Z" }, { id: "v-005", package_id: "com-002", voter_id: "u-004", decision: "reject",                    comments: "مخاطر عالية",                voted_at: "2026-01-18T10:00:00Z" } ], created_at: "2026-01-15T00:00:00Z", updated_at: "2026-01-18T00:00:00Z" },
 ];
 
 // ── Collections ────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export const COLLECTION_ACTIONS = [
 export const CREDIT_ASSESSMENTS = [
   {
     id: "ca-001", organization_id: "org-004", organization_name: "القحطاني للمشاريع الصناعية",
-    application_id: "app-001", created_by: "u-004",
+    opportunity_number: "OPP-2026-001", application_id: "app-001", created_by: "u-004",
     business_activity: "manufacturing", entity_type: "jsc", entity_location: "major_city",
     years_in_business: "10_plus", income_diversification: "high",
     audited_financials: true, total_revenue: 8000000, operating_cash_flow: 1200000,
@@ -119,7 +119,7 @@ export const CREDIT_ASSESSMENTS = [
   },
   {
     id: "ca-002", organization_id: "org-001", organization_name: "شركة الرياض للتطوير العقاري",
-    application_id: "app-002", created_by: "u-004",
+    opportunity_number: "OPP-2026-002", application_id: "app-002", created_by: "u-004",
     business_activity: "real_estate", entity_type: "llc", entity_location: "major_city",
     years_in_business: "5_to_10", income_diversification: "medium",
     audited_financials: true, total_revenue: 5000000, operating_cash_flow: 800000,
@@ -150,7 +150,7 @@ export const CREDIT_ASSESSMENTS = [
   },
   {
     id: "ca-003", organization_id: "org-005", organization_name: "الحربي للاستثمار والتطوير",
-    application_id: "app-004", created_by: "u-004",
+    opportunity_number: "OPP-2026-003", application_id: "app-004", created_by: "u-004",
     business_activity: "investment", entity_type: "llc", entity_location: "major_city",
     years_in_business: "3_to_5", income_diversification: "low",
     audited_financials: false, total_revenue: 2000000, operating_cash_flow: 300000,

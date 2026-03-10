@@ -11,15 +11,16 @@ import { Plus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
-interface ApplicationRef {
+interface CreditAssessmentRef {
   id: string;
-  reference_number: string;
-  status: string;
+  opportunity_number: string;
+  organization_name: string;
 }
 
 interface CommitteePackage extends Record<string, unknown> {
   id: string;
   application_id: string;
+  credit_assessment_id?: string;
   status: "pending" | "approved" | "rejected";
   quorum_required: number;
   votes_for: number;
@@ -29,6 +30,7 @@ interface CommitteePackage extends Record<string, unknown> {
 
 interface CreatePackageInput {
   application_id: string;
+  credit_assessment_id: string;
   quorum_required: number;
 }
 
@@ -56,6 +58,7 @@ export default function CommitteePage() {
 
   const [createForm, setCreateForm] = useState<CreatePackageInput>({
     application_id: "",
+    credit_assessment_id: "",
     quorum_required: 3,
   });
 
@@ -64,7 +67,7 @@ export default function CommitteePage() {
     comments: "",
   });
 
-  const { data: applicationsList } = useApiList<ApplicationRef>("/applications");
+  const { data: creditAssessments } = useApiList<CreditAssessmentRef>("/credit-assessments");
   const {
     data: packages,
     isLoading,
@@ -83,7 +86,7 @@ export default function CommitteePage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createForm.application_id.trim()) {
+    if (!createForm.credit_assessment_id.trim()) {
       toast.error(t("applicationIdRequired"));
       return;
     }
@@ -95,7 +98,7 @@ export default function CommitteePage() {
       await createPackage(createForm);
       toast.success(t("createSuccess"));
       setCreateOpen(false);
-      setCreateForm({ application_id: "", quorum_required: 3 });
+      setCreateForm({ application_id: "", credit_assessment_id: "", quorum_required: 3 });
       refetch();
     } catch {
       toast.error(t("createError"));
@@ -127,11 +130,16 @@ export default function CommitteePage() {
     {
       key: "application_id",
       header: t("applicationId"),
-      render: (item) => (
-        <span className="font-mono text-sm text-stone-700">
-          {truncateId(item.application_id)}
-        </span>
-      ),
+      render: (item) => {
+        const assessment = creditAssessments.find(
+          (ca) => ca.id === item.credit_assessment_id
+        );
+        return (
+          <span className="font-mono text-sm text-stone-700">
+            {assessment?.opportunity_number || truncateId(item.application_id)}
+          </span>
+        );
+      },
     },
     {
       key: "status",
@@ -240,17 +248,17 @@ export default function CommitteePage() {
               {t("application")} *
             </label>
             <select
-              value={createForm.application_id}
+              value={createForm.credit_assessment_id}
               onChange={(e) =>
-                setCreateForm({ ...createForm, application_id: e.target.value })
+                setCreateForm({ ...createForm, credit_assessment_id: e.target.value, application_id: e.target.value })
               }
               className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               required
             >
               <option value="">{t("enterApplicationUuid")}</option>
-              {applicationsList.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.reference_number} ({app.status})
+              {creditAssessments.map((ca) => (
+                <option key={ca.id} value={ca.id}>
+                  {ca.opportunity_number || ca.id} {ca.organization_name ? `— ${ca.organization_name}` : ""}
                 </option>
               ))}
             </select>
@@ -312,7 +320,7 @@ export default function CommitteePage() {
               <div className="flex justify-between">
                 <span className="text-stone-500">{t("application")}</span>
                 <span className="font-mono font-medium">
-                  {truncateId(selectedPackage.application_id)}
+                  {creditAssessments.find(ca => ca.id === selectedPackage.credit_assessment_id)?.opportunity_number || truncateId(selectedPackage.application_id)}
                 </span>
               </div>
               <div className="flex justify-between">
