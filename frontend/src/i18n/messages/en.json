@@ -610,6 +610,7 @@
       "collateral": "5%"
     },
     "fields": {
+      "opportunity_number": "Opportunity Number",
       "business_activity": "Business Activity",
       "entity_type": "Entity Type",
       "entity_location": "Entity Location",

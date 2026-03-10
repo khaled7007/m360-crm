@@ -610,6 +610,7 @@
       "collateral": "5%"
     },
     "fields": {
+      "opportunity_number": "رقم الفرصة",
       "business_activity": "نشاط المنشأة",
       "entity_type": "نوع المنشأة",
       "entity_location": "موقع المنشأة",
