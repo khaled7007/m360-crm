@@ -676,10 +676,10 @@
         "less_than_2": "Less than 2 years"
       },
       "income_diversification": {
-        "more_than_2": "More than 2 sources",
-        "2": "2 sources",
+        "0": "None",
         "1": "1 source",
-        "0": "None"
+        "2": "2 sources",
+        "more_than_2": "More than 2 sources"
       },
       "credit_record": {
         "excellent": "Excellent",
@@ -700,8 +700,8 @@
         "more_than_90": "More than 90 days"
       },
       "num_delays": {
-        "none": "None",
         "1": "1 financing",
+        "none": "None",
         "up_to_3": "Up to 3 financings",
         "more_than_3": "More than 3 financings"
       },
@@ -716,8 +716,8 @@
         "active": "Active"
       },
       "num_defaults": {
-        "none": "None",
         "1": "1 financing",
+        "none": "None",
         "more_than_1": "More than 1"
       },
       "default_ratio": {
