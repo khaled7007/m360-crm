@@ -4,6 +4,7 @@ import {
   ADMIN_EMAIL, ADMIN_PASSWORD, MOCK_TOKEN, MOCK_REFRESH, ADMIN_USER,
   USERS, ORGANIZATIONS, CONTACTS, PRODUCTS, LEADS, APPLICATIONS,
   FACILITIES, COMMITTEE_PACKAGES, COLLECTION_ACTIONS, NOTIFICATIONS,
+  CREDIT_ASSESSMENTS,
 } from "../_data/seed";
 
 // ─── Redis client ──────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized`;
+const INIT_KEY = `${PREFIX}:initialized:v2`;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -40,7 +41,8 @@ async function init() {
     redis.set(`${PREFIX}:facilities`,         FACILITIES),
     redis.set(`${PREFIX}:committee`,          COMMITTEE_PACKAGES),
     redis.set(`${PREFIX}:collection_actions`, COLLECTION_ACTIONS),
-    redis.set(`${PREFIX}:notifications`,      NOTIFICATIONS),
+    redis.set(`${PREFIX}:notifications`,        NOTIFICATIONS),
+    redis.set(`${PREFIX}:credit_assessments`,  CREDIT_ASSESSMENTS),
   ]);
   await redis.set(INIT_KEY, true);
 }
@@ -77,6 +79,7 @@ const RESOURCE_KEYS: Record<string, string> = {
   leads: "leads", organizations: "organizations", contacts: "contacts",
   products: "products", applications: "applications", facilities: "facilities",
   committee: "committee", users: "users",
+  "credit-assessments": "credit_assessments",
 };
 
 // ─── GET ───────────────────────────────────────────────────────────────────
@@ -272,6 +275,26 @@ export async function POST(
     pkg.updated_at = now();
     await setCol("committee", committee);
     return ok(vote, 201);
+  }
+
+  // CREDIT ASSESSMENT SCORE
+  if (r === "credit-assessments" && id && action === "score") {
+    const assessments = await getCol("credit_assessments");
+    const assessment = assessments.find((a) => a.id === id);
+    if (!assessment) return err("Not found", 404);
+    const totalScore = 60 + Math.random() * 35;
+    const grade = totalScore >= 90 ? "AA" : totalScore >= 80 ? "A" : totalScore >= 70 ? "BB" : totalScore >= 60 ? "B" : totalScore >= 50 ? "CC" : totalScore >= 40 ? "C" : "F";
+    const score: AnyRecord = {
+      id: uid(), assessment_id: id, scorecard_version: "RE-CREDIT-2.0",
+      total_score: Math.round(totalScore * 10) / 10, risk_grade: grade,
+      recommendation: grade === "AA" || grade === "A" ? "يوصى بالموافقة" : grade === "BB" || grade === "B" ? "يوصى بالموافقة مع شروط" : "يوصى بالرفض",
+      scored_at: now(), factors: [],
+    };
+    (assessment as AnyRecord).score = score;
+    (assessment as AnyRecord).status = "scored";
+    (assessment as AnyRecord).updated_at = now();
+    await setCol("credit_assessments", assessments);
+    return ok(score, 201);
   }
 
   // GENERIC CREATE
