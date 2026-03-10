@@ -78,7 +78,7 @@ function requireAuth(req: NextRequest): boolean {
 const RESOURCE_KEYS: Record<string, string> = {
   leads: "leads", organizations: "organizations", contacts: "contacts",
   products: "products", applications: "applications", facilities: "facilities",
-  committee: "committee", users: "users",
+  committee: "committee", packages: "committee", users: "users",
   "credit-assessments": "credit_assessments",
 };
 
@@ -264,7 +264,7 @@ export async function POST(
   }
 
   // COMMITTEE VOTE
-  if (r === "committee" && action === "vote") {
+  if ((r === "committee" || r === "packages") && action === "vote") {
     const body = await req.json().catch(() => ({})) as AnyRecord;
     const committee = await getCol("committee");
     const pkg = committee.find((c) => c.id === id) as AnyRecord & { votes: AnyRecord[] };
