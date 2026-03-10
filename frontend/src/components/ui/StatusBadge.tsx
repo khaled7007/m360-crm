@@ -25,8 +25,9 @@ const fallbackColors: Record<string, string> = {
   false: "bg-red-100 text-red-700",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status }: { status: string | undefined | null }) {
   const { statusConfig } = useStatusConfig();
+  if (!status) return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-500">—</span>;
   const cfg = statusConfig[status];
 
   if (cfg) {
@@ -42,7 +43,7 @@ export function StatusBadge({ status }: { status: string }) {
 
   // Fallback for statuses not in config (leads, facilities, etc.)
   const cls = fallbackColors[status] || "bg-stone-100 text-stone-700";
-  const label = status === "true" ? "نعم" : status === "false" ? "لا" : status.replace(/_/g, " ");
+  const label = status === "true" ? "نعم" : status === "false" ? "لا" : (status ?? "").replace(/_/g, " ");
 
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${cls}`}>
