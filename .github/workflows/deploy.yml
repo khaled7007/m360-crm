@@ -2,7 +2,7 @@ name: Deploy to Alibaba Cloud Saudi
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:
