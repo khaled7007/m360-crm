@@ -7,7 +7,7 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { useApiList, useApiMutation } from "@/lib/use-api";
-import { Plus, Vote } from "lucide-react";
+import { Plus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
@@ -178,7 +178,7 @@ export default function CommitteePage() {
           disabled={item.status !== "pending"}
           className="flex items-center gap-1 px-3 py-1 text-xs bg-teal-600 text-white rounded hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Vote size={12} />
+          <CheckCircle2 size={12} />
           {t("vote")}
         </button>
       ),
