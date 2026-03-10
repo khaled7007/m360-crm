@@ -22,6 +22,12 @@ interface Organization {
   name_ar?: string;
 }
 
+interface CreditAssessmentRef {
+  id: string;
+  opportunity_number: string;
+  organization_name: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -59,6 +65,7 @@ interface CreateApplicationInput {
   requested_tenor_months: number;
   purpose: string;
   pipeline_stage: string;
+  credit_assessment_id: string;
 }
 
 export default function ApplicationsPage() {
@@ -78,10 +85,12 @@ export default function ApplicationsPage() {
     requested_tenor_months: 12,
     purpose: "",
     pipeline_stage: "new",
+    credit_assessment_id: "",
   });
 
   const { data: organizations } = useApiList<Organization>("/organizations");
   const { data: products } = useApiList<Product>("/products");
+  const { data: creditAssessments } = useApiList<CreditAssessmentRef>("/credit-assessments");
   const { data: applications, pagination, isLoading: isLoadingApplications, error: applicationsError, refetch: refetchApplications } = useApiList<Application>("/applications", { ...page, search: searchQuery || undefined });
 
   const { mutate: createApplication, isSubmitting: isCreating } =
@@ -129,6 +138,7 @@ export default function ApplicationsPage() {
         requested_tenor_months: 12,
         purpose: "",
         pipeline_stage: "new",
+        credit_assessment_id: "",
       });
       refetchApplications();
     } catch {
@@ -393,6 +403,24 @@ export default function ApplicationsPage() {
               <option value="interested">مهتم</option>
               <option value="deal">صفقة</option>
               <option value="reject">مرفوض</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              رقم الفرصة
+            </label>
+            <select
+              value={formData.credit_assessment_id}
+              onChange={(e) => setFormData({ ...formData, credit_assessment_id: e.target.value })}
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="">-- اختر رقم الفرصة --</option>
+              {creditAssessments.map((ca) => (
+                <option key={ca.id} value={ca.id}>
+                  {ca.opportunity_number || ca.id}{ca.organization_name ? ` — ${ca.organization_name}` : ""}
+                </option>
+              ))}
             </select>
           </div>
 
