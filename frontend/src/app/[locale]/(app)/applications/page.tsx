@@ -24,7 +24,7 @@ interface Organization {
 
 interface CreditAssessmentRef {
   id: string;
-  opportunity_number: string;
+  project_name: string;
   organization_name: string;
 }
 
@@ -415,10 +415,10 @@ export default function ApplicationsPage() {
               onChange={(e) => setFormData({ ...formData, credit_assessment_id: e.target.value })}
               className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
-              <option value="">-- اختر رقم الفرصة --</option>
+              <option value="">-- اختر المشروع --</option>
               {creditAssessments.map((ca) => (
                 <option key={ca.id} value={ca.id}>
-                  {ca.opportunity_number || ca.id}{ca.organization_name ? ` — ${ca.organization_name}` : ""}
+                  {ca.project_name || ca.id}{ca.organization_name ? ` — ${ca.organization_name}` : ""}
                 </option>
               ))}
             </select>

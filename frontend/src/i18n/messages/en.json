@@ -618,6 +618,7 @@
     },
     "fields": {
       "opportunity_number": "Opportunity Number",
+      "project_name": "Project Name",
       "business_activity": "Business Activity",
       "entity_type": "Entity Type",
       "entity_location": "Entity Location",

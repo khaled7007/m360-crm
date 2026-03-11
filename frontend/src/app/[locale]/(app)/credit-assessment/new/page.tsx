@@ -26,7 +26,7 @@ const locationOptions = ["riyadh", "jeddah", "makkah", "dammam", "khobar", "othe
 
 const initialFormData = {
   organization_id: "",
-  opportunity_number: "",
+  project_name: "",
   business_activity: "",
   entity_type: "",
   entity_location: "",
@@ -239,14 +239,14 @@ export default function NewCreditAssessmentPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("fields.opportunity_number")}
+                {t("fields.project_name")}
               </label>
               <input
                 type="text"
-                value={form.opportunity_number}
-                onChange={(e) => set("opportunity_number", e.target.value)}
+                value={form.project_name}
+                onChange={(e) => set("project_name", e.target.value)}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder={t("fields.opportunity_number")}
+                placeholder={t("fields.project_name")}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

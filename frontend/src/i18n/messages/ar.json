@@ -618,6 +618,7 @@
     },
     "fields": {
       "opportunity_number": "رقم الفرصة",
+      "project_name": "اسم المشروع",
       "business_activity": "نشاط المنشأة",
       "entity_type": "نوع المنشأة",
       "entity_location": "موقع المنشأة",

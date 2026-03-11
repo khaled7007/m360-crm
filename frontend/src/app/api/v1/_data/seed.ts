@@ -88,7 +88,7 @@ export const COLLECTION_ACTIONS = [
 export const CREDIT_ASSESSMENTS = [
   {
     id: "ca-001", organization_id: "org-004", organization_name: "القحطاني للمشاريع الصناعية",
-    opportunity_number: "OPP-2026-001", application_id: "app-001", created_by: "u-004",
+    project_name: "مشروع القحطاني الصناعي", application_id: "app-001", created_by: "u-004",
     business_activity: "manufacturing", entity_type: "jsc", entity_location: "major_city",
     years_in_business: "10_plus", income_diversification: "high",
     audited_financials: true, total_revenue: 8000000, operating_cash_flow: 1200000,
@@ -119,7 +119,7 @@ export const CREDIT_ASSESSMENTS = [
   },
   {
     id: "ca-002", organization_id: "org-001", organization_name: "شركة الرياض للتطوير العقاري",
-    opportunity_number: "OPP-2026-002", application_id: "app-002", created_by: "u-004",
+    project_name: "مشروع نور للتطوير العقاري", application_id: "app-002", created_by: "u-004",
     business_activity: "real_estate", entity_type: "llc", entity_location: "major_city",
     years_in_business: "5_to_10", income_diversification: "medium",
     audited_financials: true, total_revenue: 5000000, operating_cash_flow: 800000,
@@ -150,7 +150,7 @@ export const CREDIT_ASSESSMENTS = [
   },
   {
     id: "ca-003", organization_id: "org-005", organization_name: "الحربي للاستثمار والتطوير",
-    opportunity_number: "OPP-2026-003", application_id: "app-004", created_by: "u-004",
+    project_name: "مشروع الأفق التجاري", application_id: "app-004", created_by: "u-004",
     business_activity: "investment", entity_type: "llc", entity_location: "major_city",
     years_in_business: "3_to_5", income_diversification: "low",
     audited_financials: false, total_revenue: 2000000, operating_cash_flow: 300000,

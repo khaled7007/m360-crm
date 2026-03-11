@@ -13,7 +13,7 @@ import { RoleGuard } from "@/components/ui/RoleGuard";
 
 interface CreditAssessmentRef {
   id: string;
-  opportunity_number: string;
+  project_name: string;
   organization_name: string;
 }
 
@@ -315,7 +315,7 @@ export default function CommitteePage() {
         );
         return (
           <span className="font-mono text-sm text-stone-700">
-            {assessment?.opportunity_number || truncateId(item.application_id)}
+            {assessment?.project_name || truncateId(item.application_id)}
           </span>
         );
       },
@@ -451,7 +451,7 @@ export default function CommitteePage() {
               <option value="">{t("enterApplicationUuid")}</option>
               {creditAssessments.map((ca) => (
                 <option key={ca.id} value={ca.id}>
-                  {ca.opportunity_number || ca.id} {ca.organization_name ? `— ${ca.organization_name}` : ""}
+                  {ca.project_name || ca.id} {ca.organization_name ? `— ${ca.organization_name}` : ""}
                 </option>
               ))}
             </select>
@@ -513,7 +513,7 @@ export default function CommitteePage() {
               <div className="flex justify-between">
                 <span className="text-stone-500">{t("application")}</span>
                 <span className="font-mono font-medium">
-                  {creditAssessments.find(ca => ca.id === selectedPackage.credit_assessment_id)?.opportunity_number || truncateId(selectedPackage.application_id)}
+                  {creditAssessments.find(ca => ca.id === selectedPackage.credit_assessment_id)?.project_name || truncateId(selectedPackage.application_id)}
                 </span>
               </div>
               <div className="flex justify-between">
