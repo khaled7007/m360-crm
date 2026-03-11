@@ -155,7 +155,7 @@ export default function ProductsPage() {
       ),
     },
     {
-      key: "actions" as keyof Product,
+      key: "actions",
       header: "",
       render: (item) => (
         <div className="flex items-center gap-1">
