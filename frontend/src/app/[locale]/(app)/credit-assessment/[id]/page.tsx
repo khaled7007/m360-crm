@@ -17,6 +17,14 @@ interface ScoringFactor {
   weighted_score: number;
 }
 
+interface ScoreReport {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  dscr_note: string;
+  ltv_note: string;
+}
+
 interface Score {
   id: string;
   total_score: number;
@@ -25,6 +33,7 @@ interface Score {
   scorecard_version: string;
   scored_at: string;
   factors?: ScoringFactor[];
+  report?: ScoreReport;
 }
 
 interface Assessment {
@@ -206,6 +215,44 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
                 {new Date(score.scored_at).toLocaleString()}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {score?.report && (
+        <div className="bg-white rounded-lg border border-stone-200 p-6 space-y-4">
+          <h3 className="text-lg font-semibold">{t("scoringReport")}</h3>
+          <p className="text-stone-700 leading-relaxed">{score.report.summary}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-stone-50 rounded-lg p-4 text-sm text-stone-600 space-y-1">
+              <p className="font-medium text-stone-800 mb-2">📊 {t("keyMetrics")}</p>
+              <p>{score.report.dscr_note}</p>
+              <p>{score.report.ltv_note}</p>
+            </div>
+            {score.report.strengths.length > 0 && (
+              <div className="bg-emerald-50 rounded-lg p-4 text-sm">
+                <p className="font-medium text-emerald-800 mb-2">✅ {t("strengths")}</p>
+                <ul className="space-y-1">
+                  {score.report.strengths.map((f) => (
+                    <li key={f} className="text-emerald-700">
+                      • {t(`fields.${f}` as Parameters<typeof t>[0]) || f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {score.report.weaknesses.length > 0 && (
+              <div className="bg-red-50 rounded-lg p-4 text-sm">
+                <p className="font-medium text-red-800 mb-2">⚠️ {t("weaknesses")}</p>
+                <ul className="space-y-1">
+                  {score.report.weaknesses.map((f) => (
+                    <li key={f} className="text-red-700">
+                      • {t(`fields.${f}` as Parameters<typeof t>[0]) || f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}

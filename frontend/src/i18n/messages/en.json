@@ -579,6 +579,10 @@
     "scoreBreakdown": "Score Breakdown",
     "categoryScores": "Category Scores",
     "factorDetails": "Factor Details",
+    "scoringReport": "Scoring Report",
+    "keyMetrics": "Key Metrics",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
     "assessmentData": "Assessment Data",
     "backToList": "Back to Assessments",
     "notScored": "Not Scored",
@@ -803,6 +807,7 @@
       "current_ratio": "Current Ratio",
       "project_profitability": "Project Profitability",
       "appraisal_difference": "Appraisal Difference",
+      "dscr": "Debt Service Coverage Ratio (DSCR)",
       "ltv_ratio": "Loan-to-Value Ratio",
       "deferred_price_ratio": "Deferred Price Ratio"
     }

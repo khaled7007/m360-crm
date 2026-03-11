@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v5`;
+const INIT_KEY = `${PREFIX}:initialized:v6`;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -290,19 +290,108 @@ export async function POST(
   // CREDIT ASSESSMENT SCORE
   if (r === "credit-assessments" && id && action === "score") {
     const assessments = await getCol("credit_assessments");
-    const assessment = assessments.find((a) => a.id === id);
-    if (!assessment) return err("Not found", 404);
-    const totalScore = 60 + Math.random() * 35;
+    const a = assessments.find((x) => x.id === id) as AnyRecord;
+    if (!a) return err("Not found", 404);
+
+    // ── Scoring engine ────────────────────────────────────────────────
+    // Each factor: raw_score 0-3, weight (sums to 1 across all factors)
+    // Weights per category: company_info=20%, financial=35%, credit=25%, project=10%, collateral=10%
+    const scoreFactors: AnyRecord[] = [];
+    const fid = () => uid();
+
+    // company_info (total weight = 0.20, 4 factors × 0.05)
+    const yearsScore = a.years_in_business === "10_plus" ? 3 : a.years_in_business === "5_to_10" ? 2 : a.years_in_business === "3_to_5" ? 1 : 0;
+    const entityScore = ["jsc","llc"].includes(String(a.entity_type)) ? 3 : ["sole"].includes(String(a.entity_type)) ? 1 : 2;
+    const locationScore = a.entity_location === "major_city" ? 3 : a.entity_location === "secondary_city" ? 2 : 1;
+    const incomeScore = a.income_diversification === "high" ? 3 : a.income_diversification === "medium" ? 2 : 1;
+    scoreFactors.push(
+      { id: fid(), category: "company_info", factor_name: "years_in_business",      raw_score: yearsScore,  weight: 0.05, weighted_score: yearsScore  * 0.05 / 3 },
+      { id: fid(), category: "company_info", factor_name: "entity_type",            raw_score: entityScore, weight: 0.05, weighted_score: entityScore * 0.05 / 3 },
+      { id: fid(), category: "company_info", factor_name: "entity_location",        raw_score: locationScore, weight: 0.05, weighted_score: locationScore * 0.05 / 3 },
+      { id: fid(), category: "company_info", factor_name: "income_diversification", raw_score: incomeScore, weight: 0.05, weighted_score: incomeScore * 0.05 / 3 },
+    );
+
+    // financial_statements (total weight = 0.35, 5 factors)
+    const revenue = Number(a.total_revenue) || 0;
+    const ocf = Number(a.operating_cash_flow) || 0;
+    const netProfit = Number(a.net_profit) || 0;
+    const finAmount = Number(a.financing_amount) || 1;
+    const dscr = ocf > 0 && finAmount > 0 ? ocf / (finAmount * 0.15) : 0;
+    const margin = revenue > 0 ? netProfit / revenue : 0;
+    const auditedScore = a.audited_financials ? 3 : 1;
+    const revenueScore = revenue >= 5000000 ? 3 : revenue >= 2000000 ? 2 : revenue >= 500000 ? 1 : 0;
+    const marginScore = margin >= 0.15 ? 3 : margin >= 0.08 ? 2 : margin >= 0.03 ? 1 : 0;
+    const dscrScore = dscr >= 2 ? 3 : dscr >= 1.5 ? 2 : dscr >= 1.2 ? 1 : 0;
+    const ocfScore = ocf > 0 ? (ocf >= 1000000 ? 3 : ocf >= 300000 ? 2 : 1) : 0;
+    scoreFactors.push(
+      { id: fid(), category: "financial_statements", factor_name: "audited_financials", raw_score: auditedScore, weight: 0.05, weighted_score: auditedScore * 0.05 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "total_revenue",      raw_score: revenueScore, weight: 0.08, weighted_score: revenueScore * 0.08 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "net_profit",         raw_score: marginScore,  weight: 0.08, weighted_score: marginScore  * 0.08 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "operating_cash_flow",raw_score: ocfScore,     weight: 0.07, weighted_score: ocfScore     * 0.07 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "dscr",               raw_score: dscrScore,    weight: 0.07, weighted_score: dscrScore    * 0.07 / 3 },
+    );
+
+    // credit_history (total weight = 0.25, 4 factors)
+    const creditRecordScore = a.credit_record === "excellent" ? 3 : a.credit_record === "good" ? 2 : a.credit_record === "acceptable" ? 1 : 0;
+    const payBehaviorScore  = a.payment_behavior === "excellent" ? 3 : a.payment_behavior === "satisfactory" ? 2 : a.payment_behavior === "delayed" ? 1 : 0;
+    const defaultScore      = a.financing_default === "none" ? 3 : a.financing_default === "resolved" ? 1 : 0;
+    const bouncedScore      = a.bounced_checks === "none" ? 3 : a.bounced_checks === "few" ? 1 : 0;
+    scoreFactors.push(
+      { id: fid(), category: "credit_history", factor_name: "credit_record",     raw_score: creditRecordScore, weight: 0.08, weighted_score: creditRecordScore * 0.08 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "payment_behavior",  raw_score: payBehaviorScore,  weight: 0.07, weighted_score: payBehaviorScore  * 0.07 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "financing_default", raw_score: defaultScore,      weight: 0.05, weighted_score: defaultScore      * 0.05 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "bounced_checks",    raw_score: bouncedScore,      weight: 0.05, weighted_score: bouncedScore      * 0.05 / 3 },
+    );
+
+    // project_feasibility (total weight = 0.10, 3 factors)
+    const planScore    = a.has_project_plan ? 3 : 0;
+    const feasScore    = a.feasibility_study_quality === "strong" ? 3 : a.feasibility_study_quality === "adequate" ? 2 : a.feasibility_study_quality === "weak" ? 1 : 0;
+    const prevProjScore = a.previous_projects_count === "5_plus" ? 3 : a.previous_projects_count === "3_to_5" ? 2 : a.previous_projects_count === "1_to_3" ? 1 : 0;
+    scoreFactors.push(
+      { id: fid(), category: "project_feasibility", factor_name: "has_project_plan",         raw_score: planScore,     weight: 0.03, weighted_score: planScore     * 0.03 / 3 },
+      { id: fid(), category: "project_feasibility", factor_name: "feasibility_study_quality", raw_score: feasScore,     weight: 0.04, weighted_score: feasScore     * 0.04 / 3 },
+      { id: fid(), category: "project_feasibility", factor_name: "previous_projects_count",   raw_score: prevProjScore, weight: 0.03, weighted_score: prevProjScore * 0.03 / 3 },
+    );
+
+    // collateral (total weight = 0.10, 2 factors)
+    const appraisal1 = Number(a.appraisal_1) || 0;
+    const appraisal2 = Number(a.appraisal_2) || 0;
+    const avgAppraisal = (appraisal1 + appraisal2) / 2;
+    const ltvRatio = avgAppraisal > 0 && finAmount > 0 ? avgAppraisal / finAmount : 0;
+    const ltvScore = ltvRatio >= 1.5 ? 3 : ltvRatio >= 1.2 ? 2 : ltvRatio >= 1.0 ? 1 : 0;
+    const propTypeScore = ["commercial","industrial"].includes(String(a.property_type)) ? 3 : a.property_type === "residential" ? 2 : 1;
+    scoreFactors.push(
+      { id: fid(), category: "collateral", factor_name: "ltv_ratio",    raw_score: ltvScore,     weight: 0.05, weighted_score: ltvScore     * 0.05 / 3 },
+      { id: fid(), category: "collateral", factor_name: "property_type", raw_score: propTypeScore, weight: 0.05, weighted_score: propTypeScore * 0.05 / 3 },
+    );
+
+    const totalScore = Math.round(scoreFactors.reduce((s, f) => s + (f.weighted_score as number), 0) * 1000) / 10;
     const grade = totalScore >= 90 ? "AA" : totalScore >= 80 ? "A" : totalScore >= 70 ? "BB" : totalScore >= 60 ? "B" : totalScore >= 50 ? "CC" : totalScore >= 40 ? "C" : "F";
+    const recommendation = grade === "AA" ? "approve" : grade === "A" ? "approve" : grade === "BB" ? "approve_with_conditions" : grade === "B" ? "approve_with_conditions" : "decline";
+
+    // ── Written report ─────────────────────────────────────────────────
+    const weakFactors = scoreFactors.filter((f) => (f.raw_score as number) <= 1).map((f) => f.factor_name as string);
+    const strongFactors = scoreFactors.filter((f) => (f.raw_score as number) === 3).map((f) => f.factor_name as string);
+    const report = {
+      summary: `حصل التقييم على درجة ${totalScore.toFixed(1)}% وتصنيف ${grade}. ${
+        grade === "AA" || grade === "A" ? "المنشأة تتمتع بملاءة مالية ممتازة وسجل ائتماني نظيف." :
+        grade === "BB" || grade === "B" ? "المنشأة مقبولة مع بعض المخاطر التي تستوجب اشتراطات." :
+        "المنشأة تحمل مخاطر مرتفعة لا تستوفي معايير الموافقة."
+      }`,
+      strengths: strongFactors,
+      weaknesses: weakFactors,
+      dscr_note: `نسبة تغطية الدين المحسوبة: ${dscr.toFixed(2)}x (${dscr >= 1.5 ? "مقبولة" : "دون المعيار 1.5x"})`,
+      ltv_note: ltvRatio > 0 ? `نسبة القيمة إلى التمويل (LTV): ${(ltvRatio * 100).toFixed(0)}% (${ltvRatio >= 1.2 ? "ضمان كافٍ" : "ضمان منخفض"})` : "لا تتوفر بيانات ضمان",
+    };
+
     const score: AnyRecord = {
       id: uid(), assessment_id: id, scorecard_version: "RE-CREDIT-2.0",
-      total_score: Math.round(totalScore * 10) / 10, risk_grade: grade,
-      recommendation: grade === "AA" || grade === "A" ? "يوصى بالموافقة" : grade === "BB" || grade === "B" ? "يوصى بالموافقة مع شروط" : "يوصى بالرفض",
-      scored_at: now(), factors: [],
+      total_score: totalScore, risk_grade: grade, recommendation,
+      scored_at: now(), factors: scoreFactors, report,
     };
-    (assessment as AnyRecord).score = score;
-    (assessment as AnyRecord).status = "scored";
-    (assessment as AnyRecord).updated_at = now();
+    a.score = score;
+    a.status = "scored";
+    a.updated_at = now();
     await setCol("credit_assessments", assessments);
     return ok(score, 201);
   }
