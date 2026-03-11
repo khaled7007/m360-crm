@@ -8,7 +8,7 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { Modal } from "@/components/ui/Modal";
-import { Plus, Building2, TrendingUp, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, Building2, TrendingUp, ShieldCheck, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -194,6 +194,13 @@ export default function CreditAssessmentListPage() {
       header: "",
       render: (item) => (
         <div className="flex items-center gap-1">
+          <Link
+            href={`/${locale}/credit-assessment/${item.id}/edit`}
+            onClick={(e) => e.stopPropagation()}
+            className="p-1.5 text-stone-500 hover:bg-stone-100 rounded transition"
+          >
+            <Pencil size={14} />
+          </Link>
           <button
             onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
             className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
