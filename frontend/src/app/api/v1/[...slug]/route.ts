@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v4`;
+const INIT_KEY = `${PREFIX}:initialized:v5`;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -267,11 +267,21 @@ export async function POST(
   if ((r === "committee" || r === "packages") && action === "vote") {
     const body = await req.json().catch(() => ({})) as AnyRecord;
     const committee = await getCol("committee");
-    const pkg = committee.find((c) => c.id === id) as AnyRecord & { votes: AnyRecord[] };
+    const pkg = committee.find((c) => c.id === id) as AnyRecord & { votes: AnyRecord[]; votes_for: number; votes_against: number; quorum_required: number };
     if (!pkg) return err("Not found", 404);
     const vote = { id: uid(), package_id: id, voter_id: "u-001", ...body, voted_at: now() };
     if (!pkg.votes) pkg.votes = [];
     pkg.votes.push(vote);
+    // update vote counts
+    if (body.decision === "approve" || body.decision === "approve_with_conditions") {
+      pkg.votes_for = (pkg.votes_for || 0) + 1;
+    } else if (body.decision === "reject") {
+      pkg.votes_against = (pkg.votes_against || 0) + 1;
+    }
+    // check quorum and update status
+    const quorum = pkg.quorum_required || 3;
+    if (pkg.votes_for >= quorum) pkg.status = "approved";
+    else if (pkg.votes_against >= quorum) pkg.status = "rejected";
     pkg.updated_at = now();
     await setCol("committee", committee);
     return ok(vote, 201);
@@ -308,6 +318,12 @@ export async function POST(
   if (r === "applications") {
     created.reference_number = `APP-${new Date().getFullYear()}-${String(collection.length + 1).padStart(3, "0")}`;
     if (!created.status) created.status = "draft";
+  }
+  if (r === "committee" || r === "packages") {
+    if (!created.status) created.status = "pending";
+    if (!created.votes) created.votes = [];
+    if (created.votes_for === undefined) created.votes_for = 0;
+    if (created.votes_against === undefined) created.votes_against = 0;
   }
   if (r === "facilities") {
     created.reference_number = `FAC-${new Date().getFullYear()}-${String(collection.length + 1).padStart(3, "0")}`;
