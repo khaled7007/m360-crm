@@ -196,6 +196,33 @@ export async function GET(
   if (r === "yaqeen" && id) return ok({ national_id: id, full_name: "اسم الشخص", nationality: "Saudi", verified: true });
   if (r === "watheq" && id) return ok({ cr_number: id, status: "active", name: "شركة مسجلة" });
 
+  // DOCUMENTS
+  if (r === "documents") {
+    if (id && action === "download") {
+      const content = await redis.get<string>(`${PREFIX}:doc_content:${id}`);
+      if (!content) return err("Not found", 404);
+      const docs = await getCol("documents");
+      const doc = docs.find((d) => d.id === id);
+      const binary = Buffer.from(content, "base64");
+      return new NextResponse(binary, {
+        status: 200,
+        headers: {
+          "Content-Type": (doc?.content_type as string) || "application/octet-stream",
+          "Content-Disposition": `attachment; filename="${doc?.name || "document"}"`,
+        },
+      });
+    }
+    const docs = await getCol("documents");
+    const url = new URL(req.url);
+    const entityType = url.searchParams.get("entity_type");
+    const entityId   = url.searchParams.get("entity_id");
+    const filtered = docs.filter((d) =>
+      (!entityType || d.entity_type === entityType) &&
+      (!entityId   || d.entity_id   === entityId)
+    );
+    return ok(filtered);
+  }
+
   // GENERIC CRUD
   const colKey = RESOURCE_KEYS[r];
   if (!colKey) return err("Not found", 404);
@@ -396,6 +423,29 @@ export async function POST(
     return ok(score, 201);
   }
 
+  // DOCUMENTS UPLOAD
+  if (r === "documents") {
+    const formData = await req.formData().catch(() => null);
+    if (!formData) return err("Invalid form data", 400);
+    const file       = formData.get("file") as File | null;
+    const entityType = formData.get("entity_type") as string;
+    const entityId   = formData.get("entity_id") as string;
+    const name       = (formData.get("name") as string) || file?.name || "document";
+    if (!file) return err("No file provided", 400);
+    const bytes  = await file.arrayBuffer();
+    const base64 = Buffer.from(bytes).toString("base64");
+    const docId  = uid();
+    const doc: AnyRecord = {
+      id: docId, name, entity_type: entityType, entity_id: entityId,
+      file_size: file.size, content_type: file.type, created_at: now(),
+    };
+    const docs = await getCol("documents");
+    docs.push(doc);
+    await setCol("documents", docs);
+    await redis.set(`${PREFIX}:doc_content:${docId}`, base64);
+    return ok(doc, 201);
+  }
+
   // GENERIC CREATE
   const colKey = RESOURCE_KEYS[r];
   if (!colKey) return err("Not found", 404);
@@ -473,6 +523,17 @@ export async function DELETE(
   if (!requireAuth(req)) return err("Unauthorized", 401);
   const { slug } = await context.params;
   const [r, id] = slug ?? [];
+
+  // DOCUMENTS DELETE
+  if (r === "documents") {
+    const docs = await getCol("documents");
+    const idx = docs.findIndex((d) => d.id === id);
+    if (idx === -1) return err("Not found", 404);
+    docs.splice(idx, 1);
+    await setCol("documents", docs);
+    await redis.del(`${PREFIX}:doc_content:${id}`);
+    return new NextResponse(null, { status: 204 });
+  }
 
   const colKey = RESOURCE_KEYS[r];
   if (!colKey) return err("Not found", 404);
