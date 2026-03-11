@@ -59,7 +59,7 @@ describe("Sidebar", () => {
 
   it("renders the M360 logo", () => {
     renderSidebar();
-    expect(screen.getByText("THARA360")).toBeInTheDocument();
+    expect(screen.getByText("ClientsCycle")).toBeInTheDocument();
   });
 
   it("renders all 13 navigation links", () => {
@@ -116,11 +116,11 @@ describe("Sidebar", () => {
   it("toggles collapsed state when chevron is clicked", () => {
     renderSidebar();
     // Initially expanded - M360 logo should be visible
-    expect(screen.getByText("THARA360")).toBeInTheDocument();
+    expect(screen.getByText("ClientsCycle")).toBeInTheDocument();
 
     // Find and click the collapse button (the button in the header)
     const collapseButton = screen
-      .getByText("THARA360")
+      .getByText("ClientsCycle")
       .closest("div")!
       .querySelector("button")!;
     fireEvent.click(collapseButton);

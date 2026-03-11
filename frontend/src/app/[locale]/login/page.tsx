@@ -47,7 +47,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">THARA360</h1>
+            <h1 className="text-4xl font-bold text-white tracking-tight">ClientsCycle</h1>
             <p className="text-teal-200 mt-1 text-lg">{t("smeLendingCrm")}</p>
           </div>
 
@@ -85,7 +85,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm animate-fade-in">
           <div className="lg:hidden mb-8">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">THARA360</h1>
+            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">ClientsCycle</h1>
             <p className="text-stone-500 text-sm">{t("smeLendingCrm")}</p>
           </div>
 

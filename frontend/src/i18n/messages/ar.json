@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "THARA360",
+    "appName": "ClientsCycle",
     "dashboard": "لوحة التحكم",
     "leads": "العملاء المحتملون",
     "organizations": "طالبي التمويل",
@@ -95,7 +95,7 @@
   "auth": {
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",
-    "loginTitle": "تسجيل الدخول إلى THARA360",
+    "loginTitle": "تسجيل الدخول إلى ClientsCycle",
     "loginButton": "تسجيل الدخول",
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
     "forgotPassword": "نسيت كلمة المرور؟",
@@ -108,7 +108,7 @@
     "welcomeBack": "مرحباً بعودتك",
     "signInToAccount": "سجّل الدخول إلى حسابك للمتابعة",
     "signingIn": "جاري تسجيل الدخول...",
-    "copyright": "© 2026 THARA360. جميع الحقوق محفوظة.",
+    "copyright": "© 2026 ClientsCycle. جميع الحقوق محفوظة.",
     "statsUserRoles": "أدوار المستخدمين",
     "statsSaudiIntegrations": "تكاملات سعودية",
     "statsWorkflowStages": "مراحل سير العمل"
@@ -498,7 +498,7 @@
     "roleName": "الدور",
     "nameEnPlaceholder": "مثال: Ahmed Al-Rashid",
     "nameArPlaceholder": "مثال: أحمد الراشد",
-    "emailPlaceholder": "user@thara360.sa",
+    "emailPlaceholder": "user@clientscycle.sa",
     "passwordPlaceholder": "8 أحرف على الأقل",
     "noUsers": "لم يتم العثور على مستخدمين",
     "loadError": "فشل في تحميل المستخدمين. يرجى المحاولة مرة أخرى.",

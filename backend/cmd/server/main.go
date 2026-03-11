@@ -38,7 +38,7 @@ func main() {
 
 	logger.Setup(cfg.Environment)
 
-	slog.Info("starting THARA360 server",
+	slog.Info("starting ClientsCycle server",
 		"environment", cfg.Environment,
 		"port", cfg.Port,
 	)

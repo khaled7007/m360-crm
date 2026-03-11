@@ -2,8 +2,8 @@
 
 export const ADMIN_EMAIL = "admin@m360.sa";
 export const ADMIN_PASSWORD = "admin123!";
-export const MOCK_TOKEN = "mock-jwt-token-thara360";
-export const MOCK_REFRESH = "mock-refresh-token-thara360";
+export const MOCK_TOKEN = "mock-jwt-token-clientscycle";
+export const MOCK_REFRESH = "mock-refresh-token-clientscycle";
 
 // ── Users ──────────────────────────────────────────────────────────────────
 export const USERS = [

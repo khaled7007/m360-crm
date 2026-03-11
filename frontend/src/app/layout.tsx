@@ -20,7 +20,7 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "THARA360",
+  title: "ClientsCycle",
   description: "SME Lending CRM",
 };
 
