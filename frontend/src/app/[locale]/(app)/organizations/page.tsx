@@ -137,6 +137,8 @@ export default function OrganizationsPage() {
   });
 
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [newOrgId, setNewOrgId] = useState<string | null>(null);
+  const [newOrgDocRefreshKey, setNewOrgDocRefreshKey] = useState(0);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [editForm, setEditForm] = useState<CreateOrganizationInput | null>(null);
   const [deleteOrg, setDeleteOrg] = useState<Organization | null>(null);
@@ -212,7 +214,7 @@ export default function OrganizationsPage() {
   const { data: products } = useApiList<Product>("/products");
 
   const { mutate: createOrganization, isSubmitting: isCreating } =
-    useApiMutation("/organizations", "POST");
+    useApiMutation<CreateOrganizationInput, Organization>("/organizations", "POST");
   const { mutate: updateOrganization, isSubmitting: isUpdating } =
     useApiMutation(editOrg ? `/organizations/${editOrg.id}` : "/organizations", "PUT");
   const { mutate: deleteOrganization, isSubmitting: isDeleting } =
@@ -261,25 +263,34 @@ export default function OrganizationsPage() {
     }
   };
 
+  const resetCreateModal = () => {
+    setIsModalOpen(false);
+    setNewOrgId(null);
+    setNewOrgDocRefreshKey(0);
+    setFormData({
+      name_en: "",
+      name_ar: "",
+      cr_number: "",
+      product_id: "",
+      city: "",
+      address: "",
+      phone: "",
+      email: "",
+      contact_name: "",
+    });
+  };
+
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      await createOrganization(formData);
+      const created = await createOrganization(formData);
       toast.success(t("createSuccess"));
-      setIsModalOpen(false);
-      setFormData({
-        name_en: "",
-        name_ar: "",
-        cr_number: "",
-        product_id: "",
-        city: "",
-        address: "",
-        phone: "",
-        email: "",
-        contact_name: "",
-      });
       refetchOrganizations();
+      if (created?.id) {
+        setNewOrgId(created.id);
+      } else {
+        resetCreateModal();
+      }
     } catch {
       toast.error(t("createError"));
     }
@@ -435,10 +446,45 @@ export default function OrganizationsPage() {
 
       <Modal
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={resetCreateModal}
         title="طالب تمويل جديد"
         size="xl"
       >
+        {newOrgId ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+              <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0">✓</div>
+              <div>
+                <p className="font-semibold text-emerald-800">تم إنشاء طالب التمويل بنجاح</p>
+                <p className="text-sm text-emerald-600">يمكنك الآن إرفاق القوائم المالية</p>
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-stone-900">القوائم المالية</h4>
+                <FileUpload
+                  entityType="organization"
+                  entityId={newOrgId}
+                  onUploadComplete={() => setNewOrgDocRefreshKey((k) => k + 1)}
+                />
+              </div>
+              <DocumentList
+                entityType="organization"
+                entityId={newOrgId}
+                refreshKey={newOrgDocRefreshKey}
+              />
+            </div>
+            <div className="flex justify-end pt-4 border-t border-stone-200">
+              <button
+                type="button"
+                onClick={resetCreateModal}
+                className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleCreateOrganization} className="space-y-5">
           {/* Name */}
           <div>
@@ -553,7 +599,7 @@ export default function OrganizationsPage() {
           <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={resetCreateModal}
               className="px-5 py-2.5 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
               {tc("cancel")}
@@ -567,6 +613,7 @@ export default function OrganizationsPage() {
             </button>
           </div>
         </form>
+        )}
       </Modal>
 
       {/* Edit Modal */}
