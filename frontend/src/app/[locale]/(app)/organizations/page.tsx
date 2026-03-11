@@ -8,6 +8,8 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { api } from "@/lib/api";
 import { Plus, Search, Loader2, FileUp, Pencil, Trash2 } from "lucide-react";
+import { FileUpload } from "@/components/ui/FileUpload";
+import { DocumentList } from "@/components/ui/DocumentList";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { OrgImportModal } from "@/components/organizations/OrgImportModal";
@@ -644,6 +646,7 @@ export default function OrganizationsPage() {
 function OrganizationDetails({ organization }: { organization: Organization }) {
   const t = useTranslations("organizations");
   const tc = useTranslations("common");
+  const [docRefreshKey, setDocRefreshKey] = useState(0);
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
@@ -733,6 +736,23 @@ function OrganizationDetails({ organization }: { organization: Organization }) {
             {new Date(organization.updated_at).toLocaleDateString()}
           </p>
         </div>
+      </div>
+
+      {/* Financial Statements */}
+      <div className="border-t border-stone-200 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-stone-900">القوائم المالية</h4>
+          <FileUpload
+            entityType="organization"
+            entityId={organization.id}
+            onUploadComplete={() => setDocRefreshKey((k) => k + 1)}
+          />
+        </div>
+        <DocumentList
+          entityType="organization"
+          entityId={organization.id}
+          refreshKey={docRefreshKey}
+        />
       </div>
     </div>
   );

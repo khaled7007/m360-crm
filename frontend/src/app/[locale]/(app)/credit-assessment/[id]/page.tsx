@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Play, Send } from "lucide-react";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { DocumentList } from "@/components/ui/DocumentList";
 
 interface ScoringFactor {
   id: string;
@@ -387,6 +388,15 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
           </p>
         </div>
       )}
+
+      {/* Org Financial Statements */}
+      <div className="bg-white rounded-lg border border-stone-200 p-6">
+        <h3 className="text-lg font-semibold mb-4">القوائم المالية لطالب التمويل</h3>
+        <DocumentList
+          entityType="organization"
+          entityId={assessment.organization_id}
+        />
+      </div>
 
       {/* Send to Committee Modal */}
       <Modal

@@ -799,6 +799,17 @@ function ApplicationDetails({ application, onStatusChanged }: { application: App
           refreshKey={docRefreshKey}
         />
       </div>
+
+      {/* Org Financial Statements (read-only) */}
+      {application.organization_id && (
+        <div className="border-t border-stone-200 pt-4">
+          <h4 className="text-sm font-semibold text-stone-900 mb-3">القوائم المالية لطالب التمويل</h4>
+          <DocumentList
+            entityType="organization"
+            entityId={application.organization_id}
+          />
+        </div>
+      )}
     </div>
   );
 }
