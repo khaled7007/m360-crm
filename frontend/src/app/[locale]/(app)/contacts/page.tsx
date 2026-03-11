@@ -35,10 +35,10 @@ interface ContactForm {
   phone?: string;
   email?: string;
   role?: string;
-  is_guarantor: boolean;
+  is_guarantor?: boolean;
 }
 
-const emptyForm: ContactForm = { is_guarantor: false };
+const emptyForm: ContactForm = {};
 
 export default function ContactsPage() {
   const t = useTranslations("contacts");
@@ -74,7 +74,6 @@ export default function ContactsPage() {
       phone: item.phone,
       email: item.email,
       role: item.role,
-      is_guarantor: item.is_guarantor,
     });
   };
 
@@ -143,7 +142,7 @@ export default function ContactsPage() {
     },
     { key: "phone", header: tc("phone") },
     { key: "email", header: tc("email") },
-    { key: "role",  header: t("role") },
+    { key: "role", header: t("role") },
     {
       key: "actions" as keyof Contact,
       header: "",
@@ -241,18 +240,6 @@ export default function ContactsPage() {
         />
       </div>
 
-      {/* Guarantor */}
-      <div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.is_guarantor || false}
-            onChange={(e) => onChange("is_guarantor", e.target.checked)}
-            className="w-4 h-4 text-teal-600 border-stone-300 rounded focus:ring-teal-500"
-          />
-          <span className="text-sm text-stone-700">{t("guarantor")}</span>
-        </label>
-      </div>
     </div>
   );
 
