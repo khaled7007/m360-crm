@@ -162,7 +162,13 @@ export default function NewCreditAssessmentPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(initialFormData);
 
-  const { data: orgs } = useApiList<Organization>("/organizations", { limit: 200 });
+  // Only show orgs that were sent from applications (sent_from_application: true)
+  const { data: allApps } = useApiList<{ organization_id: string; status: string }>("/applications", { limit: 500 });
+  const { data: allOrgs } = useApiList<Organization>("/organizations", { limit: 200 });
+  const sentOrgIds = new Set(
+    allApps.filter((a) => a.status === "credit_assessment").map((a) => a.organization_id)
+  );
+  const orgs = allOrgs.filter((o) => sentOrgIds.has(o.id));
   const { mutate: create, isSubmitting } = useApiMutation<FormData>("/credit-assessments", "POST");
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>

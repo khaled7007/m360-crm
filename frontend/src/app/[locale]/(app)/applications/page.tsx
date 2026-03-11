@@ -10,7 +10,7 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { DocumentList } from "@/components/ui/DocumentList";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2, Pencil, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { StatusSettingsModal } from "@/components/ui/StatusSettingsModal";
 import { useStatusConfig } from "@/lib/status-config-context";
@@ -20,12 +20,6 @@ interface Organization {
   id: string;
   name_en: string;
   name_ar?: string;
-}
-
-interface CreditAssessmentRef {
-  id: string;
-  project_name: string;
-  organization_name: string;
 }
 
 interface Product {
@@ -58,92 +52,138 @@ interface Application {
   updated_at: string;
 }
 
-interface CreateApplicationInput {
+interface AppFormInput {
   organization_id: string;
   product_id: string;
   requested_amount: number;
   requested_tenor_months: number;
   purpose: string;
   pipeline_stage: string;
-  credit_assessment_id: string;
 }
+
+const emptyForm: AppFormInput = {
+  organization_id: "",
+  product_id: "",
+  requested_amount: 0,
+  requested_tenor_months: 12,
+  purpose: "",
+  pipeline_stage: "new",
+};
 
 export default function ApplicationsPage() {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusSettingsOpen, setIsStatusSettingsOpen] = useState(false);
-  const [expandedApplicationId, setExpandedApplicationId] = useState<
-    string | null
-  >(null);
+  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [formData, setFormData] = useState<CreateApplicationInput>({
-    organization_id: "",
-    product_id: "",
-    requested_amount: 0,
-    requested_tenor_months: 12,
-    purpose: "",
-    pipeline_stage: "new",
-    credit_assessment_id: "",
-  });
+  const [formData, setFormData] = useState<AppFormInput>({ ...emptyForm });
+  const [orgSearch, setOrgSearch] = useState("");
+
+  const [editItem, setEditItem] = useState<Application | null>(null);
+  const [editForm, setEditForm] = useState<AppFormInput>({ ...emptyForm });
+  const [editOrgSearch, setEditOrgSearch] = useState("");
 
   const { data: organizations } = useApiList<Organization>("/organizations");
   const { data: products } = useApiList<Product>("/products");
-  const { data: creditAssessments } = useApiList<CreditAssessmentRef>("/credit-assessments");
-  const { data: applications, pagination, isLoading: isLoadingApplications, error: applicationsError, refetch: refetchApplications } = useApiList<Application>("/applications", { ...page, search: searchQuery || undefined });
+  const {
+    data: applications,
+    pagination,
+    isLoading: isLoadingApplications,
+    error: applicationsError,
+    refetch: refetchApplications,
+  } = useApiList<Application>("/applications", {
+    ...page,
+    search: searchQuery || undefined,
+  });
 
   const { mutate: createApplication, isSubmitting: isCreating } =
-    useApiMutation<CreateApplicationInput>(
-      "/applications",
-      "POST"
+    useApiMutation<AppFormInput>("/applications", "POST");
+
+  const { mutate: updateApplication, isSubmitting: isUpdating } =
+    useApiMutation<AppFormInput>(
+      `/applications/${editItem?.id}`,
+      "PUT"
     );
+
+  const filteredOrgs = organizations.filter((org) => {
+    if (!orgSearch.trim()) return true;
+    const q = orgSearch.toLowerCase();
+    return (
+      org.name_en.toLowerCase().includes(q) ||
+      (org.name_ar || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredEditOrgs = organizations.filter((org) => {
+    if (!editOrgSearch.trim()) return true;
+    const q = editOrgSearch.toLowerCase();
+    return (
+      org.name_en.toLowerCase().includes(q) ||
+      (org.name_ar || "").toLowerCase().includes(q)
+    );
+  });
 
   const handleCreateApplication = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.organization_id.trim()) {
-      toast.error(t("organizationRequired"));
-      return;
-    }
-
-    if (!formData.product_id.trim()) {
-      toast.error(t("productRequired"));
-      return;
-    }
-
-    if (formData.requested_amount <= 0) {
-      toast.error(t("amountError"));
-      return;
-    }
-
-    if (formData.requested_tenor_months <= 0) {
-      toast.error(t("tenorError"));
-      return;
-    }
-
-    if (!formData.purpose.trim()) {
-      toast.error(t("purposeRequired"));
-      return;
-    }
-
     try {
       await createApplication(formData);
       toast.success(t("createSuccess"));
       setIsModalOpen(false);
-      setFormData({
-        organization_id: "",
-        product_id: "",
-        requested_amount: 0,
-        requested_tenor_months: 12,
-        purpose: "",
-        pipeline_stage: "new",
-        credit_assessment_id: "",
-      });
+      setFormData({ ...emptyForm });
+      setOrgSearch("");
       refetchApplications();
     } catch {
       toast.error(t("createError"));
     }
+  };
+
+  const handleEditApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateApplication(editForm);
+      toast.success("تم تحديث الطلب بنجاح");
+      setEditItem(null);
+      setEditOrgSearch("");
+      refetchApplications();
+    } catch {
+      toast.error("فشل تحديث الطلب");
+    }
+  };
+
+  const handleSendToCredit = async (item: Application) => {
+    try {
+      const token = localStorage.getItem("m360_token") || "";
+      await api("/credit-assessments", {
+        method: "POST",
+        body: { organization_id: item.organization_id, sent_from_application: true },
+        token,
+      });
+      await api(`/applications/${item.id}`, {
+        method: "PUT",
+        body: { status: "credit_assessment" },
+        token,
+      });
+      toast.success("تم الإرسال للائتمان بنجاح");
+      refetchApplications();
+    } catch {
+      toast.error("فشل الإرسال للائتمان");
+    }
+  };
+
+  const openEditModal = (item: Application) => {
+    setEditItem(item);
+    setEditForm({
+      organization_id: item.organization_id || "",
+      product_id: item.product_id || "",
+      requested_amount: item.requested_amount || 0,
+      requested_tenor_months: item.requested_tenor_months || 12,
+      purpose: item.purpose || "",
+      pipeline_stage: item.pipeline_stage || "new",
+    });
+    setEditOrgSearch("");
   };
 
   const columns: Column<Application>[] = [
@@ -151,9 +191,7 @@ export default function ApplicationsPage() {
       key: "reference_number",
       header: t("referenceNumber"),
       render: (item) => (
-        <span className="font-medium text-stone-900">
-          {item.reference_number}
-        </span>
+        <span className="font-medium text-stone-900">{item.reference_number}</span>
       ),
     },
     {
@@ -184,9 +222,7 @@ export default function ApplicationsPage() {
       key: "purpose",
       header: t("purpose"),
       render: (item) => (
-        <span className="text-sm text-stone-700 line-clamp-1">
-          {item.purpose}
-        </span>
+        <span className="text-sm text-stone-700 line-clamp-1">{item.purpose}</span>
       ),
     },
     {
@@ -196,6 +232,31 @@ export default function ApplicationsPage() {
         <span className="text-sm text-stone-600">
           {new Date(item.created_at).toLocaleDateString()}
         </span>
+      ),
+    },
+    {
+      key: "actions" as keyof Application,
+      header: "",
+      render: (item) => (
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {item.status !== "credit_assessment" && (
+            <button
+              onClick={() => handleSendToCredit(item)}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-teal-50 text-teal-700 border border-teal-200 rounded-md hover:bg-teal-100 transition"
+              title="إرسال للائتمان"
+            >
+              <BookOpen size={14} />
+              <span>إرسال للائتمان</span>
+            </button>
+          )}
+          <button
+            onClick={() => openEditModal(item)}
+            className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition"
+            title="تعديل"
+          >
+            <Pencil size={15} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -209,10 +270,7 @@ export default function ApplicationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <PageHeader
-          title={t("title")}
-          description={t("subtitle")}
-        />
+        <PageHeader title={t("title")} description={t("subtitle")} />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsStatusSettingsOpen(true)}
@@ -239,7 +297,12 @@ export default function ApplicationsPage() {
       {applicationsError && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
           <p className="text-red-600">{t("loadError")}</p>
-          <button onClick={() => refetchApplications()} className="mt-2 text-sm text-teal-600 hover:underline">{tc("retry")}</button>
+          <button
+            onClick={() => refetchApplications()}
+            className="mt-2 text-sm text-teal-600 hover:underline"
+          >
+            {tc("retry")}
+          </button>
         </div>
       )}
       {!isLoadingApplications && !applicationsError && applications.length === 0 && (
@@ -255,7 +318,10 @@ export default function ApplicationsPage() {
             isLoading={isLoadingApplications}
             onRowClick={handleRowClick}
             searchable
-            onSearch={(q) => { setSearchQuery(q); setPage((p) => ({ ...p, offset: 0 })); }}
+            onSearch={(q) => {
+              setSearchQuery(q);
+              setPage((p) => ({ ...p, offset: 0 }));
+            }}
           />
         </div>
       )}
@@ -272,9 +338,9 @@ export default function ApplicationsPage() {
         <div className="bg-white rounded-lg border border-stone-200 p-6">
           {applications.find((app) => app.id === expandedApplicationId) && (
             <ApplicationDetails
-              application={applications.find(
-                (app) => app.id === expandedApplicationId
-              )!}
+              application={
+                applications.find((app) => app.id === expandedApplicationId)!
+              }
               onStatusChanged={refetchApplications}
             />
           )}
@@ -285,29 +351,40 @@ export default function ApplicationsPage() {
         <StatusSettingsModal onClose={() => setIsStatusSettingsOpen(false)} />
       )}
 
+      {/* Create Modal */}
       <Modal
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setOrgSearch("");
+        }}
         title={t("newApp")}
       >
         <form onSubmit={handleCreateApplication} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("organization")} *
+                {t("organization")}
               </label>
+              <input
+                type="text"
+                value={orgSearch}
+                onChange={(e) => setOrgSearch(e.target.value)}
+                placeholder="بحث عن منظمة..."
+                className="w-full px-3 py-2 border border-stone-300 rounded-t-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
               <select
                 value={formData.organization_id}
                 onChange={(e) =>
                   setFormData({ ...formData, organization_id: e.target.value })
                 }
-                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                required
+                className="w-full rounded-b-lg border border-t-0 border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                size={4}
               >
                 <option value="">{tc("selectOrganization")}</option>
-                {organizations.map((org) => (
+                {filteredOrgs.map((org) => (
                   <option key={org.id} value={org.id}>
-                    {org.name_en}
+                    {org.name_ar ? `${org.name_ar} — ` : ""}{org.name_en}
                   </option>
                 ))}
               </select>
@@ -315,7 +392,7 @@ export default function ApplicationsPage() {
 
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("product")} *
+                {t("product")}
               </label>
               <select
                 value={formData.product_id}
@@ -323,12 +400,12 @@ export default function ApplicationsPage() {
                   setFormData({ ...formData, product_id: e.target.value })
                 }
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                required
               >
                 <option value="">{t("selectProduct")}</option>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {product.name}{product.type ? ` (${product.type})` : ""}
+                    {product.name}
+                    {product.type ? ` (${product.type})` : ""}
                   </option>
                 ))}
               </select>
@@ -336,7 +413,7 @@ export default function ApplicationsPage() {
 
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("requestedAmount")} (SAR) *
+                {t("requestedAmount")} (SAR)
               </label>
               <input
                 type="number"
@@ -356,7 +433,7 @@ export default function ApplicationsPage() {
 
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("tenor")} *
+                {t("tenor")}
               </label>
               <input
                 type="number"
@@ -376,7 +453,7 @@ export default function ApplicationsPage() {
 
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              {t("purpose")} *
+              {t("purpose")}
             </label>
             <textarea
               value={formData.purpose}
@@ -395,7 +472,9 @@ export default function ApplicationsPage() {
             </label>
             <select
               value={formData.pipeline_stage}
-              onChange={(e) => setFormData({ ...formData, pipeline_stage: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, pipeline_stage: e.target.value })
+              }
               className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="new">جديد</option>
@@ -406,28 +485,13 @@ export default function ApplicationsPage() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
-              رقم الفرصة
-            </label>
-            <select
-              value={formData.credit_assessment_id}
-              onChange={(e) => setFormData({ ...formData, credit_assessment_id: e.target.value })}
-              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            >
-              <option value="">-- اختر المشروع --</option>
-              {creditAssessments.map((ca) => (
-                <option key={ca.id} value={ca.id}>
-                  {ca.project_name || ca.id}{ca.organization_name ? ` — ${ca.organization_name}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                setOrgSearch("");
+              }}
               className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
               {tc("cancel")}
@@ -438,6 +502,162 @@ export default function ApplicationsPage() {
               className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
             >
               {isCreating ? t("creating") : t("newApp")}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        open={editItem !== null}
+        onClose={() => {
+          setEditItem(null);
+          setEditOrgSearch("");
+        }}
+        title="تعديل الطلب"
+      >
+        <form onSubmit={handleEditApplication} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("organization")}
+              </label>
+              <input
+                type="text"
+                value={editOrgSearch}
+                onChange={(e) => setEditOrgSearch(e.target.value)}
+                placeholder="بحث عن منظمة..."
+                className="w-full px-3 py-2 border border-stone-300 rounded-t-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+              <select
+                value={editForm.organization_id}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, organization_id: e.target.value })
+                }
+                className="w-full rounded-b-lg border border-t-0 border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                size={4}
+              >
+                <option value="">{tc("selectOrganization")}</option>
+                {filteredEditOrgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name_ar ? `${org.name_ar} — ` : ""}{org.name_en}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("product")}
+              </label>
+              <select
+                value={editForm.product_id}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, product_id: e.target.value })
+                }
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              >
+                <option value="">{t("selectProduct")}</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name}
+                    {product.type ? ` (${product.type})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("requestedAmount")} (SAR)
+              </label>
+              <input
+                type="number"
+                value={editForm.requested_amount}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    requested_amount: parseFloat(e.target.value) || 0,
+                  })
+                }
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="0"
+                step="0.01"
+                min="0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("tenor")}
+              </label>
+              <input
+                type="number"
+                value={editForm.requested_tenor_months}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    requested_tenor_months: parseInt(e.target.value) || 12,
+                  })
+                }
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="12"
+                min="1"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              {t("purpose")}
+            </label>
+            <textarea
+              value={editForm.purpose}
+              onChange={(e) =>
+                setEditForm({ ...editForm, purpose: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              placeholder={t("purposePlaceholder")}
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              مرحلة خط سير المبيعات
+            </label>
+            <select
+              value={editForm.pipeline_stage}
+              onChange={(e) =>
+                setEditForm({ ...editForm, pipeline_stage: e.target.value })
+              }
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="new">جديد</option>
+              <option value="lead">عميل محتمل</option>
+              <option value="interested">مهتم</option>
+              <option value="deal">صفقة</option>
+              <option value="reject">مرفوض</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => {
+                setEditItem(null);
+                setEditOrgSearch("");
+              }}
+              className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+            >
+              {isUpdating ? "جاري الحفظ..." : "حفظ التعديلات"}
             </button>
           </div>
         </form>

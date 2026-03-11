@@ -146,7 +146,12 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
   const [loaded, setLoaded] = useState(false);
 
   const { data: existing, isLoading } = useApiGet<Record<string, unknown>>(`/credit-assessments/${id}`);
-  const { data: orgs } = useApiList<Organization>("/organizations", { limit: 200 });
+  const { data: allApps } = useApiList<{ organization_id: string; status: string }>("/applications", { limit: 500 });
+  const { data: allOrgs } = useApiList<Organization>("/organizations", { limit: 200 });
+  const sentOrgIds = new Set(
+    allApps.filter((a) => a.status === "credit_assessment").map((a) => a.organization_id)
+  );
+  const orgs = allOrgs.filter((o) => sentOrgIds.has(o.id));
   const { mutate: update, isSubmitting } = useApiMutation<FormData>(`/credit-assessments/${id}`, "PUT");
 
   useEffect(() => {
