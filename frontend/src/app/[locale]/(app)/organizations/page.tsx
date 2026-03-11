@@ -141,6 +141,7 @@ export default function OrganizationsPage() {
   const [newOrgDocRefreshKey, setNewOrgDocRefreshKey] = useState(0);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [editForm, setEditForm] = useState<CreateOrganizationInput | null>(null);
+  const [editDocRefreshKey, setEditDocRefreshKey] = useState(0);
   const [deleteOrg, setDeleteOrg] = useState<Organization | null>(null);
 
   const handleLookupCR = async () => {
@@ -222,19 +223,16 @@ export default function OrganizationsPage() {
 
   const openEdit = (org: Organization) => {
     setEditOrg(org);
+    setEditDocRefreshKey(0);
     setEditForm({
       name_en: org.name_en,
       name_ar: org.name_ar,
       cr_number: org.cr_number,
-      vat_number: org.vat_number || "",
-      industry: org.industry,
-      city: org.city,
-      address: org.address,
-      phone: org.phone,
-      email: org.email,
-      website: org.website || "",
-      annual_revenue: org.annual_revenue || 0,
-      employee_count: org.employee_count || 0,
+      city: org.city || "",
+      address: org.address || "",
+      phone: org.phone || "",
+      email: org.email || "",
+      contact_name: "",
     });
   };
 
@@ -617,62 +615,128 @@ export default function OrganizationsPage() {
       </Modal>
 
       {/* Edit Modal */}
-      <Modal open={!!editOrg} onClose={() => { setEditOrg(null); setEditForm(null); }} title="تعديل المنظمة" size="lg">
-        {editForm && (
-          <form onSubmit={handleEdit} className="space-y-4">
+      <Modal open={!!editOrg} onClose={() => { setEditOrg(null); setEditForm(null); }} title="تعديل طالب التمويل" size="xl">
+        {editForm && editOrg && (
+          <form onSubmit={handleEdit} className="space-y-5">
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">الاسم</label>
+              <input
+                type="text"
+                value={editForm.name_en}
+                onChange={(e) => setEditForm({ ...editForm, name_en: e.target.value, name_ar: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                placeholder="شركة الرياض للتطوير"
+              />
+            </div>
+
+            {/* CR Number + Product */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t("nameEn")} *</label>
-                <input type="text" value={editForm.name_en} onChange={(e) => setEditForm({ ...editForm, name_en: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+                <label className="block text-sm font-medium text-stone-700 mb-1.5">رقم السجل التجاري</label>
+                <input
+                  type="text"
+                  value={editForm.cr_number}
+                  onChange={(e) => setEditForm({ ...editForm, cr_number: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                  placeholder="1234567890"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t("nameAr")} *</label>
-                <input type="text" value={editForm.name_ar} onChange={(e) => setEditForm({ ...editForm, name_ar: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t("crNumber")} *</label>
-                <input type="text" value={editForm.cr_number} onChange={(e) => setEditForm({ ...editForm, cr_number: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t("taxId")}</label>
-                <input type="text" value={editForm.vat_number || ""} onChange={(e) => setEditForm({ ...editForm, vat_number: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t("industry")} *</label>
-                <input type="text" value={editForm.industry} onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t("city")} *</label>
-                <input type="text" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("address")} *</label>
-                <input type="text" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("phone")} *</label>
-                <input type="tel" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("email")} *</label>
-                <input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("website")}</label>
-                <input type="url" value={editForm.website || ""} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("annualRevenue")}</label>
-                <input type="number" value={editForm.annual_revenue || 0} onChange={(e) => setEditForm({ ...editForm, annual_revenue: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("employeeCount")}</label>
-                <input type="number" value={editForm.employee_count || 0} onChange={(e) => setEditForm({ ...editForm, employee_count: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
+                <label className="block text-sm font-medium text-stone-700 mb-1.5">المنتج المطلوب</label>
+                <select
+                  value={editForm.product_id || ""}
+                  onChange={(e) => setEditForm({ ...editForm, product_id: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                >
+                  <option value="">--</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name_ar || p.name_en}</option>
+                  ))}
+                </select>
               </div>
             </div>
+
+            {/* City */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">المدينة</label>
+              <input
+                type="text"
+                value={editForm.city || ""}
+                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                placeholder="Riyadh"
+              />
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">العنوان</label>
+              <input
+                type="text"
+                value={editForm.address || ""}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                placeholder="Business Street, Riyadh"
+              />
+            </div>
+
+            {/* Phone + Email */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1.5">الهاتف</label>
+                <input
+                  type="tel"
+                  value={editForm.phone || ""}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                  placeholder="+966 11 123 4567"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1.5">البريد الإلكتروني</label>
+                <input
+                  type="email"
+                  value={editForm.email || ""}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                  placeholder="info@company.com"
+                />
+              </div>
+            </div>
+
+            {/* Contact Name */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">اسم الشخص المسؤول</label>
+              <input
+                type="text"
+                value={editForm.contact_name || ""}
+                onChange={(e) => setEditForm({ ...editForm, contact_name: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+                placeholder="محمد الأحمد"
+              />
+            </div>
+
+            {/* Financial Statements */}
+            <div className="border-t border-stone-200 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-stone-900">القوائم المالية</h4>
+                <FileUpload
+                  entityType="organization"
+                  entityId={editOrg.id}
+                  onUploadComplete={() => setEditDocRefreshKey((k) => k + 1)}
+                />
+              </div>
+              <DocumentList
+                entityType="organization"
+                entityId={editOrg.id}
+                refreshKey={editDocRefreshKey}
+              />
+            </div>
+
             <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
-              <button type="button" onClick={() => { setEditOrg(null); setEditForm(null); }} className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition">{tc("cancel")}</button>
-              <button type="submit" disabled={isUpdating} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50">{isUpdating ? "جارٍ الحفظ..." : "حفظ التعديلات"}</button>
+              <button type="button" onClick={() => { setEditOrg(null); setEditForm(null); }} className="px-5 py-2.5 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition">{tc("cancel")}</button>
+              <button type="submit" disabled={isUpdating} className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50">{isUpdating ? "جارٍ الحفظ..." : "حفظ التعديلات"}</button>
             </div>
           </form>
         )}
