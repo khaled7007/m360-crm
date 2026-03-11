@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { Upload, X, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, X, FileSpreadsheet, CheckCircle2, AlertCircle, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -79,6 +79,20 @@ export function OrgImportModal({ open, onClose, onImported }: Props) {
   const [fileName, setFileName] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+
+  const downloadSample = () => {
+    const sampleData = [
+      ["اسم المنظمة", "الاسم بالعربي", "رقم السجل التجاري", "الصناعة", "المدينة", "العنوان", "الهاتف", "البريد الإلكتروني", "الموقع", "الإيرادات السنوية", "عدد الموظفين"],
+      ["Riyadh Development Co.", "شركة الرياض للتطوير", "1010123456", "العقارات", "الرياض", "طريق الملك فهد، حي العليا", "+966 11 123 4567", "info@riyadhdev.sa", "https://riyadhdev.sa", 5000000, 120],
+      ["Al Madinah Trading", "شركة المدينة للتجارة", "4030987654", "التجارة", "المدينة المنورة", "شارع قباء، حي السلام", "+966 14 456 7890", "contact@madinahtrading.sa", "", 2000000, 45],
+      ["Jeddah Tech Solutions", "حلول جدة التقنية", "4030111222", "التقنية", "جدة", "شارع التحلية، حي الروضة", "+966 12 789 0123", "hello@jeddahtech.sa", "https://jeddahtech.sa", 8000000, 200],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(sampleData);
+    ws["!cols"] = sampleData[0].map(() => ({ wch: 22 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "طالبو التمويل");
+    XLSX.writeFile(wb, "نموذج_استيراد_طالبي_التمويل.xlsx");
+  };
 
   const reset = () => {
     setRows([]);
@@ -201,7 +215,7 @@ export function OrgImportModal({ open, onClose, onImported }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200">
           <div className="flex items-center gap-2">
             <FileSpreadsheet size={22} className="text-teal-600" />
-            <h2 className="text-lg font-semibold text-stone-800">استيراد المنظمات من Excel</h2>
+            <h2 className="text-lg font-semibold text-stone-800">استيراد طالبي التمويل من Excel</h2>
           </div>
           <button onClick={handleClose} className="p-1 rounded hover:bg-stone-100 transition">
             <X size={20} className="text-stone-500" />
@@ -234,14 +248,25 @@ export function OrgImportModal({ open, onClose, onImported }: Props) {
             </div>
           )}
 
-          {/* Template hint */}
+          {/* Template hint + download sample */}
           {!rows.length && (
             <div className="rounded-lg bg-teal-50 border border-teal-200 p-4 text-sm text-teal-800">
-              <p className="font-medium mb-1">الأعمدة المدعومة:</p>
-              <p className="text-teal-700">
-                اسم المنظمة، الاسم بالعربي، رقم السجل التجاري، الصناعة، المدينة، العنوان، الهاتف، البريد الإلكتروني، الموقع، الإيرادات السنوية، عدد الموظفين
-              </p>
-              <p className="mt-1 text-teal-600">كذلك تدعم الأسماء الإنجليزية: name_en, cr_number, industry, city, phone, email, …</p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-medium mb-1">الأعمدة المدعومة:</p>
+                  <p className="text-teal-700">
+                    اسم المنظمة، الاسم بالعربي، رقم السجل التجاري، الصناعة، المدينة، العنوان، الهاتف، البريد الإلكتروني، الموقع، الإيرادات السنوية، عدد الموظفين
+                  </p>
+                  <p className="mt-1 text-teal-600">كذلك تدعم الأسماء الإنجليزية: name_en, cr_number, industry, city, phone, email, …</p>
+                </div>
+                <button
+                  onClick={downloadSample}
+                  className="flex items-center gap-1.5 shrink-0 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-xs font-medium"
+                >
+                  <Download size={14} />
+                  تحميل نموذج
+                </button>
+              </div>
             </div>
           )}
 
