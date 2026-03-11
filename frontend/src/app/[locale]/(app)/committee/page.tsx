@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
-import { useApiList, useApiMutation } from "@/lib/use-api";
-import { Plus, CheckCircle2 } from "lucide-react";
+import { useApiList, useApiMutation, useApiGet } from "@/lib/use-api";
+import { Plus, CheckCircle2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
@@ -39,6 +39,185 @@ interface VoteInput {
   comments: string;
 }
 
+interface ScoringFactor {
+  id: string;
+  category: string;
+  factor_name: string;
+  raw_score: number;
+  weight: number;
+  weighted_score: number;
+}
+
+interface Score {
+  id: string;
+  total_score: number;
+  risk_grade: string;
+  recommendation: string;
+  scorecard_version: string;
+  scored_at: string;
+  factors?: ScoringFactor[];
+}
+
+interface Assessment {
+  id: string;
+  status: string;
+  created_at: string;
+  business_activity: string;
+  entity_type: string;
+  total_revenue: number;
+  operating_cash_flow: number;
+  net_profit: number;
+  financing_amount: number;
+  score?: Score | null;
+}
+
+const gradeColors: Record<string, { bg: string; text: string; border: string }> = {
+  AA: { bg: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200" },
+  A: { bg: "bg-green-50", text: "text-green-800", border: "border-green-200" },
+  BB: { bg: "bg-lime-50", text: "text-lime-800", border: "border-lime-200" },
+  B: { bg: "bg-yellow-50", text: "text-yellow-800", border: "border-yellow-200" },
+  CC: { bg: "bg-orange-50", text: "text-orange-800", border: "border-orange-200" },
+  C: { bg: "bg-red-50", text: "text-red-800", border: "border-red-200" },
+  F: { bg: "bg-red-100", text: "text-red-900", border: "border-red-300" },
+};
+
+const categoryOrder = ["company_info", "financial_statements", "credit_history", "project_feasibility", "collateral"];
+
+function AssessmentViewer({ assessmentId }: { assessmentId: string }) {
+  const t = useTranslations("creditAssessment");
+  const tc = useTranslations("common");
+  const { data: assessment, isLoading } = useApiGet<Assessment>(`/credit-assessments/${assessmentId}`);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" />
+      </div>
+    );
+  }
+  if (!assessment) return <p className="text-center text-stone-500 py-8">{t("loadError")}</p>;
+
+  const score = assessment.score;
+  const gc = score ? (gradeColors[score.risk_grade] || gradeColors.F) : null;
+
+  const factorsByCategory: Record<string, ScoringFactor[]> = {};
+  if (score?.factors) {
+    for (const f of score.factors) {
+      if (!factorsByCategory[f.category]) factorsByCategory[f.category] = [];
+      factorsByCategory[f.category].push(f);
+    }
+  }
+
+  const categoryTotals = categoryOrder.map((cat) => {
+    const factors = factorsByCategory[cat] || [];
+    const totalWeight = factors.reduce((s, f) => s + f.weight, 0);
+    const totalWeighted = factors.reduce((s, f) => s + f.weighted_score, 0);
+    const pct = totalWeight > 0 ? (totalWeighted / totalWeight) * 100 : 0;
+    return { category: cat, pct: pct.toFixed(1), weighted: (totalWeighted * 100).toFixed(2), maxWeight: (totalWeight * 100).toFixed(0) };
+  });
+
+  return (
+    <div className="space-y-5">
+      {/* Basic info */}
+      <div className="grid grid-cols-2 gap-3 text-sm bg-stone-50 rounded-lg p-4">
+        <div><span className="text-stone-500">{tc("status")}: </span><span className="font-medium">{assessment.status}</span></div>
+        <div><span className="text-stone-500">{t("fields.financing_amount") || "مبلغ التمويل"}: </span><span className="font-medium">{assessment.financing_amount?.toLocaleString()} SAR</span></div>
+        <div><span className="text-stone-500">{t("fields.total_revenue") || "الإيرادات"}: </span><span className="font-medium">{assessment.total_revenue?.toLocaleString()} SAR</span></div>
+        <div><span className="text-stone-500">{t("fields.net_profit") || "صافي الربح"}: </span><span className="font-medium">{assessment.net_profit?.toLocaleString()} SAR</span></div>
+      </div>
+
+      {/* Score banner */}
+      {score && gc && (
+        <div className={`rounded-xl border-2 ${gc.border} ${gc.bg} p-5`}>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs text-stone-500 mb-0.5">{t("score")}</p>
+              <p className={`text-4xl font-bold ${gc.text}`}>{score.total_score}%</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-stone-500 mb-0.5">{t("grade")}</p>
+              <p className={`text-3xl font-black ${gc.text}`}>{score.risk_grade}</p>
+            </div>
+            <div className="text-end">
+              <p className="text-xs text-stone-500 mb-0.5">{t("recommendation")}</p>
+              <p className={`text-base font-semibold ${gc.text}`}>
+                {t(`recommendations.${score.recommendation}` as Parameters<typeof t>[0])}
+              </p>
+              <p className="text-xs text-stone-400 mt-0.5">{score.scorecard_version}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category bars */}
+      {score && (
+        <div className="bg-white rounded-lg border border-stone-200 p-4">
+          <h4 className="text-sm font-semibold mb-3">{t("categoryScores")}</h4>
+          <div className="space-y-2">
+            {categoryTotals.map((ct) => (
+              <div key={ct.category}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-medium">{t(`categories.${ct.category}` as Parameters<typeof t>[0])}</span>
+                  <span className="text-xs text-stone-500">{ct.weighted}% / {ct.maxWeight}%</span>
+                </div>
+                <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-teal-500 rounded-full" style={{ width: `${Math.min(parseFloat(ct.pct), 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Factor details */}
+      {score?.factors && score.factors.length > 0 && (
+        <div className="bg-white rounded-lg border border-stone-200 p-4">
+          <h4 className="text-sm font-semibold mb-3">{t("factorDetails")}</h4>
+          {categoryOrder.map((cat) => {
+            const factors = factorsByCategory[cat];
+            if (!factors?.length) return null;
+            return (
+              <div key={cat} className="mb-4 last:mb-0">
+                <h5 className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1">
+                  {t(`categories.${cat}` as Parameters<typeof t>[0])}
+                </h5>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-stone-200 text-stone-500">
+                      <th className="text-start py-1 pe-3">{tc("name")}</th>
+                      <th className="text-center py-1 px-2">Raw</th>
+                      <th className="text-end py-1 ps-2">{t("score")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {factors.map((f) => (
+                      <tr key={f.id} className="border-b border-stone-100">
+                        <td className="py-1 pe-3">{t(`fields.${f.factor_name}` as Parameters<typeof t>[0]) || f.factor_name}</td>
+                        <td className="text-center py-1 px-2">
+                          <span className={`inline-block w-5 h-5 rounded-full text-xs font-bold leading-5 text-center ${f.raw_score === 3 ? "bg-emerald-100 text-emerald-700" : f.raw_score === 2 ? "bg-yellow-100 text-yellow-700" : f.raw_score === 1 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>
+                            {f.raw_score}
+                          </span>
+                        </td>
+                        <td className="text-end py-1 ps-2 font-semibold">{(f.weighted_score * 100).toFixed(2)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!score && (
+        <div className="bg-stone-50 rounded-lg border border-stone-200 p-6 text-center text-stone-500">
+          {t("notScored")}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-SA", {
     year: "numeric",
@@ -53,8 +232,8 @@ export default function CommitteePage() {
   const tc = useTranslations("common");
   const [createOpen, setCreateOpen] = useState(false);
   const [voteOpen, setVoteOpen] = useState(false);
-  const [selectedPackage, setSelectedPackage] =
-    useState<CommitteePackage | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<CommitteePackage | null>(null);
+  const [viewAssessmentId, setViewAssessmentId] = useState<string | null>(null);
 
   const [createForm, setCreateForm] = useState<CreatePackageInput>({
     application_id: "",
@@ -178,17 +357,31 @@ export default function CommitteePage() {
       key: "actions",
       header: "",
       render: (item) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            openVoteModal(item);
-          }}
-          disabled={item.status !== "pending"}
-          className="flex items-center gap-1 px-3 py-1 text-xs bg-teal-600 text-white rounded hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <CheckCircle2 size={12} />
-          {t("vote")}
-        </button>
+        <div className="flex items-center gap-2">
+          {item.credit_assessment_id && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewAssessmentId(item.credit_assessment_id!);
+              }}
+              className="flex items-center gap-1 px-3 py-1 text-xs border border-stone-300 text-stone-700 rounded hover:bg-stone-50 transition"
+            >
+              <Eye size={12} />
+              عرض التقييم
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openVoteModal(item);
+            }}
+            disabled={item.status !== "pending"}
+            className="flex items-center gap-1 px-3 py-1 text-xs bg-teal-600 text-white rounded hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <CheckCircle2 size={12} />
+            {t("vote")}
+          </button>
+        </div>
       ),
     },
   ];
@@ -409,6 +602,15 @@ export default function CommitteePage() {
             </div>
           </form>
         )}
+      </Modal>
+      {/* Assessment Viewer Modal */}
+      <Modal
+        open={!!viewAssessmentId}
+        onClose={() => setViewAssessmentId(null)}
+        title="التقييم الائتماني"
+        size="xl"
+      >
+        {viewAssessmentId && <AssessmentViewer assessmentId={viewAssessmentId} />}
       </Modal>
     </div>
     </RoleGuard>
