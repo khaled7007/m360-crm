@@ -91,16 +91,24 @@ interface Organization {
   updated_at: string;
 }
 
+interface Product {
+  id: string;
+  name_en: string;
+  name_ar?: string;
+}
+
 interface CreateOrganizationInput {
   name_en: string;
   name_ar: string;
   cr_number: string;
+  product_id?: string;
+  city?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  contact_name?: string;
   vat_number?: string;
-  industry: string;
-  city: string;
-  address: string;
-  phone: string;
-  email: string;
+  industry?: string;
   website?: string;
   annual_revenue?: number;
   employee_count?: number;
@@ -118,15 +126,12 @@ export default function OrganizationsPage() {
     name_en: "",
     name_ar: "",
     cr_number: "",
-    vat_number: "",
-    industry: "",
+    product_id: "",
     city: "",
     address: "",
     phone: "",
     email: "",
-    website: "",
-    annual_revenue: 0,
-    employee_count: 0,
+    contact_name: "",
   });
 
   const [isLookingUp, setIsLookingUp] = useState(false);
@@ -202,6 +207,8 @@ export default function OrganizationsPage() {
     refetch: refetchOrganizations,
   } = useApiList<Organization>("/organizations", { ...page, search: searchQuery || undefined });
 
+  const { data: products } = useApiList<Product>("/products");
+
   const { mutate: createOrganization, isSubmitting: isCreating } =
     useApiMutation("/organizations", "POST");
   const { mutate: updateOrganization, isSubmitting: isUpdating } =
@@ -263,15 +270,12 @@ export default function OrganizationsPage() {
         name_en: "",
         name_ar: "",
         cr_number: "",
-        vat_number: "",
-        industry: "",
+        product_id: "",
         city: "",
         address: "",
         phone: "",
         email: "",
-        website: "",
-        annual_revenue: 0,
-        employee_count: 0,
+        contact_name: "",
       });
       refetchOrganizations();
     } catch {
@@ -430,226 +434,134 @@ export default function OrganizationsPage() {
       <Modal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={t("newOrg")}
+        title="طالب تمويل جديد"
+        size="xl"
       >
-        <form onSubmit={handleCreateOrganization} className="space-y-4">
+        <form onSubmit={handleCreateOrganization} className="space-y-5">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">الاسم</label>
+            <input
+              type="text"
+              value={formData.name_en}
+              onChange={(e) => setFormData({ ...formData, name_en: e.target.value, name_ar: e.target.value })}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+              placeholder="شركة الرياض للتطوير"
+            />
+          </div>
+
+          {/* CR Number + Product */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("nameEn")} *
-              </label>
-              <input
-                type="text"
-                value={formData.name_en}
-                onChange={(e) =>
-                  setFormData({ ...formData, name_en: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Company Inc"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("nameAr")} *
-              </label>
-              <input
-                type="text"
-                value={formData.name_ar}
-                onChange={(e) =>
-                  setFormData({ ...formData, name_ar: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="شركة"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("crNumber")} *
-              </label>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">رقم السجل التجاري</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={formData.cr_number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cr_number: e.target.value })
-                  }
-                  className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  onChange={(e) => setFormData({ ...formData, cr_number: e.target.value })}
+                  className="flex-1 px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
                   placeholder="1234567890"
                 />
                 <button
                   type="button"
                   disabled={!formData.cr_number.trim() || isLookingUp}
                   onClick={handleLookupCR}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-2.5 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  {isLookingUp ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Search size={16} />
-                  )}
-                  {isLookingUp ? t("lookupLoading") : t("lookupCR")}
+                  {isLookingUp ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+                  بحث
                 </button>
               </div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("taxId")}
-              </label>
-              <input
-                type="text"
-                value={formData.vat_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, vat_number: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="300000000000003"
-              />
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">المنتج المطلوب</label>
+              <select
+                value={formData.product_id || ""}
+                onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              >
+                <option value="">--</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name_ar || p.name_en}</option>
+                ))}
+              </select>
             </div>
+          </div>
 
+          {/* City */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">المدينة</label>
+            <input
+              type="text"
+              value={formData.city || ""}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+              placeholder="Riyadh"
+            />
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">العنوان</label>
+            <input
+              type="text"
+              value={formData.address || ""}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+              placeholder="Business Street, Riyadh 11543 123"
+            />
+          </div>
+
+          {/* Phone + Email */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("industry")} *
-              </label>
-              <input
-                type="text"
-                value={formData.industry}
-                onChange={(e) =>
-                  setFormData({ ...formData, industry: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Manufacturing"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {t("city")} *
-              </label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) =>
-                  setFormData({ ...formData, city: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="Riyadh"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("address")} *
-              </label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="123 Business Street, Riyadh 11543"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("phone")} *
-              </label>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">الهاتف</label>
               <input
                 type="tel"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                value={formData.phone || ""}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
                 placeholder="+966 11 123 4567"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("email")} *
-              </label>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">البريد الإلكتروني</label>
               <input
                 type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                value={formData.email || ""}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
                 placeholder="info@company.com"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("website")}
-              </label>
-              <input
-                type="url"
-                value={formData.website}
-                onChange={(e) =>
-                  setFormData({ ...formData, website: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="https://www.company.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("annualRevenue")}
-              </label>
-              <input
-                type="number"
-                value={formData.annual_revenue}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    annual_revenue: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {tc("employeeCount")}
-              </label>
-              <input
-                type="number"
-                value={formData.employee_count}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    employee_count: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="0"
-              />
-            </div>
+          {/* Contact Name */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">اسم الشخص المسؤول</label>
+            <input
+              type="text"
+              value={formData.contact_name || ""}
+              onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-right"
+              placeholder="محمد الأحمد"
+            />
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+              className="px-5 py-2.5 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
               {tc("cancel")}
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+              className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
             >
-              {isCreating ? t("creating") : t("newOrg")}
+              {isCreating ? t("creating") : "طالب تمويل جديد"}
             </button>
           </div>
         </form>
