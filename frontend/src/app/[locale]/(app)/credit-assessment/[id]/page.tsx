@@ -6,7 +6,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApiGet, useApiMutation } from "@/lib/use-api";
 import { toast } from "sonner";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft, Play, Send } from "lucide-react";
+import { useState } from "react";
+import { Modal } from "@/components/ui/Modal";
 
 interface ScoringFactor {
   id: string;
@@ -82,6 +84,7 @@ interface Assessment {
   appraisal_1: number;
   appraisal_2: number;
   financing_amount: number;
+  application_id?: string;
 }
 
 const gradeColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -112,8 +115,16 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
     `/credit-assessments/${id}`
   );
 
+  const [sendOpen, setSendOpen] = useState(false);
+  const [quorum, setQuorum] = useState(3);
+
   const { mutate: runScore, isSubmitting: isScoring } = useApiMutation<Record<string, never>>(
     `/credit-assessments/${id}/score`,
+    "POST"
+  );
+
+  const { mutate: createPackage, isSubmitting: isSending } = useApiMutation<Record<string, unknown>>(
+    "/packages",
     "POST"
   );
 
@@ -124,6 +135,21 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
       refetch();
     } catch {
       toast.error(t("scoringError"));
+    }
+  };
+
+  const handleSendToCommittee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createPackage({
+        credit_assessment_id: id,
+        application_id: assessment?.application_id || id,
+        quorum_required: quorum,
+      });
+      toast.success(t("sentToCommittee"));
+      setSendOpen(false);
+    } catch {
+      toast.error(t("sendError"));
     }
   };
 
@@ -179,16 +205,27 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
             description={`ID: ${assessment.id.slice(0, 8)}...`}
           />
         </div>
-        {!score && (
-          <button
-            onClick={handleScore}
-            disabled={isScoring}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
-          >
-            <Play size={16} />
-            {isScoring ? t("scoring") : t("runScoring")}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {!score && (
+            <button
+              onClick={handleScore}
+              disabled={isScoring}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+            >
+              <Play size={16} />
+              {isScoring ? t("scoring") : t("runScoring")}
+            </button>
+          )}
+          {score && (
+            <button
+              onClick={() => setSendOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              <Send size={16} />
+              {t("sendToCommittee")}
+            </button>
+          )}
+        </div>
       </div>
 
       {score && gc && (
@@ -350,6 +387,64 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
           </p>
         </div>
       )}
+
+      {/* Send to Committee Modal */}
+      <Modal
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        title={t("sendToCommittee")}
+        size="sm"
+      >
+        <form onSubmit={handleSendToCommittee} className="space-y-4">
+          <div className="bg-stone-50 rounded-lg p-4 text-sm space-y-1">
+            <div className="flex justify-between">
+              <span className="text-stone-500">{t("grade")}</span>
+              <span className={`font-bold ${gc?.text}`}>{score?.risk_grade} — {score ? t(`grades.${score.risk_grade}` as Parameters<typeof t>[0]) : ""}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-stone-500">{t("score")}</span>
+              <span className="font-semibold">{score?.total_score}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-stone-500">{t("recommendation")}</span>
+              <span className="font-medium">{score ? t(`recommendations.${score.recommendation}` as Parameters<typeof t>[0]) : ""}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              النصاب المطلوب للموافقة
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={quorum}
+              onChange={(e) => setQuorum(parseInt(e.target.value, 10) || 3)}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-stone-500">عدد أصوات الموافقة اللازمة لإقرار الطلب</p>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => setSendOpen(false)}
+              className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isSending}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-2"
+            >
+              <Send size={14} />
+              {isSending ? tc("submitting") : t("sendToCommittee")}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
