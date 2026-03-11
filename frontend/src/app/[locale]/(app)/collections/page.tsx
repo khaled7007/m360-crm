@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiGet, useApiList, useApiMutation } from "@/lib/use-api";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
@@ -70,6 +70,9 @@ export default function CollectionsPage() {
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<CreateCollectionInput>(defaultForm);
+  const [editItem, setEditItem] = useState<CollectionAction | null>(null);
+  const [deleteItem, setDeleteItem] = useState<CollectionAction | null>(null);
+  const [editForm, setEditForm] = useState<CreateCollectionInput>(defaultForm);
 
   const actionTypeLabels: Record<string, string> = {
     phone_call: t("actionTypeLabels.phone_call"),
@@ -87,6 +90,30 @@ export default function CollectionsPage() {
 
   const { mutate: createAction, isSubmitting } =
     useApiMutation<CreateCollectionInput, CollectionAction>("/collections", "POST");
+
+  const { mutate: updateAction, isSubmitting: isUpdating } =
+    useApiMutation<CreateCollectionInput, CollectionAction>(
+      `/collections/${editItem?.id}`,
+      "PUT"
+    );
+
+  const { mutate: deleteAction, isSubmitting: isDeleting } =
+    useApiMutation<Record<string, never>, void>(
+      `/collections/${deleteItem?.id}`,
+      "DELETE"
+    );
+
+  const openEdit = (item: CollectionAction) => {
+    setEditItem(item);
+    setEditForm({
+      facility_id: item.facility_id,
+      action_type: item.action_type,
+      description: item.description,
+      next_action_date: item.next_action_date
+        ? item.next_action_date.slice(0, 10)
+        : "",
+    });
+  };
 
   const columns: Column<CollectionAction>[] = [
     {
@@ -134,6 +161,26 @@ export default function CollectionsPage() {
         </span>
       ),
     },
+    {
+      key: "actions",
+      header: "",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -160,6 +207,30 @@ export default function CollectionsPage() {
       refetch();
     } catch {
       toast.error(t("createError"));
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateAction(editForm);
+      toast.success("تم التعديل بنجاح");
+      setEditItem(null);
+      setEditForm(defaultForm);
+      refetch();
+    } catch {
+      toast.error("فشل التعديل");
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteAction({});
+      toast.success("تم الحذف بنجاح");
+      setDeleteItem(null);
+      refetch();
+    } catch {
+      toast.error("فشل الحذف");
     }
   };
 
@@ -396,6 +467,118 @@ export default function CollectionsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+      {/* Edit Modal */}
+      <Modal
+        open={!!editItem}
+        onClose={() => { setEditItem(null); setEditForm(defaultForm); }}
+        title="تعديل"
+        size="md"
+      >
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div>
+            {fieldLabel(t("facilityId"), true)}
+            <select
+              value={editForm.facility_id}
+              onChange={(e) => setEditForm({ ...editForm, facility_id: e.target.value })}
+              className={inputClass}
+              required
+            >
+              <option value="">{t("enterFacilityUuid")}</option>
+              {facilities.map((facility) => (
+                <option key={facility.id} value={facility.id}>
+                  {facility.reference_number || facility.organization_name || facility.id}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            {fieldLabel(t("actionType"), true)}
+            <select
+              value={editForm.action_type}
+              onChange={(e) =>
+                setEditForm({
+                  ...editForm,
+                  action_type: e.target.value as CreateCollectionInput["action_type"],
+                })
+              }
+              className={inputClass}
+            >
+              <option value="phone_call">{actionTypeLabels.phone_call}</option>
+              <option value="site_visit">{actionTypeLabels.site_visit}</option>
+              <option value="letter">{actionTypeLabels.letter}</option>
+              <option value="legal_notice">{actionTypeLabels.legal_notice}</option>
+            </select>
+          </div>
+
+          <div>
+            {fieldLabel(t("description"), true)}
+            <textarea
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              className={inputClass}
+              placeholder={t("descriptionPlaceholder")}
+              rows={3}
+            />
+          </div>
+
+          <div>
+            {fieldLabel(t("nextActionDate"), true)}
+            <input
+              type="date"
+              value={editForm.next_action_date}
+              onChange={(e) => setEditForm({ ...editForm, next_action_date: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => { setEditItem(null); setEditForm(defaultForm); }}
+              className="px-4 py-2 text-sm text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+            >
+              {isUpdating ? tc("loading") : "حفظ التعديلات"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        title="تأكيد الحذف"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">هل أنت متأكد من حذف هذا العنصر؟</p>
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => setDeleteItem(null)}
+              className="px-4 py-2 text-sm text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            >
+              {isDeleting ? tc("loading") : "حذف"}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
     </RoleGuard>

@@ -6,8 +6,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { PaginationControls } from "@/components/ui/PaginationControls";
-import { useApiList } from "@/lib/use-api";
-import { Plus, Building2, TrendingUp, ShieldCheck } from "lucide-react";
+import { useApiList, useApiMutation } from "@/lib/use-api";
+import { Modal } from "@/components/ui/Modal";
+import { Plus, Building2, TrendingUp, ShieldCheck, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Organization {
   id: string;
@@ -62,6 +64,7 @@ export default function CreditAssessmentListPage() {
   const tc = useTranslations("common");
   const locale = useLocale();
   const [page, setPage] = useState({ limit: 20, offset: 0 });
+  const [deleteItem, setDeleteItem] = useState<CreditAssessment | null>(null);
 
   const {
     data: assessments,
@@ -72,6 +75,23 @@ export default function CreditAssessmentListPage() {
   } = useApiList<CreditAssessment>("/credit-assessments", page);
 
   const { data: orgs } = useApiList<Organization>("/organizations", { limit: 200 });
+
+  const { mutate: deleteAssessment, isSubmitting: isDeleting } =
+    useApiMutation<Record<string, never>, void>(
+      `/credit-assessments/${deleteItem?.id}`,
+      "DELETE"
+    );
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteAssessment({});
+      toast.success("تم الحذف بنجاح");
+      setDeleteItem(null);
+      refetch();
+    } catch {
+      toast.error("فشل الحذف");
+    }
+  };
 
   const orgMap = useMemo(() => {
     const map = new Map<string, Organization>();
@@ -169,6 +189,20 @@ export default function CreditAssessmentListPage() {
         </span>
       ),
     },
+    {
+      key: "actions",
+      header: "",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -223,6 +257,35 @@ export default function CreditAssessmentListPage() {
           onPageChange={(offset) => setPage((p) => ({ ...p, offset }))}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        title="تأكيد الحذف"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">هل أنت متأكد من حذف هذا العنصر؟</p>
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => setDeleteItem(null)}
+              className="px-4 py-2 text-sm text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            >
+              {isDeleting ? tc("loading") : "حذف"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

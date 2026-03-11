@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { api } from "@/lib/api";
-import { Plus, Search, Loader2, FileUp } from "lucide-react";
+import { Plus, Search, Loader2, FileUp, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { OrgImportModal } from "@/components/organizations/OrgImportModal";
@@ -78,15 +78,15 @@ interface Organization {
   name_en: string;
   name_ar: string;
   cr_number: string;
-  vat_number: string;
+  vat_number?: string;
   industry: string;
   city: string;
   address: string;
   phone: string;
   email: string;
-  website: string;
-  annual_revenue: number;
-  employee_count: number;
+  website?: string;
+  annual_revenue?: number;
+  employee_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +130,9 @@ export default function OrganizationsPage() {
   });
 
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [editOrg, setEditOrg] = useState<Organization | null>(null);
+  const [editForm, setEditForm] = useState<CreateOrganizationInput | null>(null);
+  const [deleteOrg, setDeleteOrg] = useState<Organization | null>(null);
 
   const handleLookupCR = async () => {
     const crNumber = formData.cr_number.trim();
@@ -201,6 +204,53 @@ export default function OrganizationsPage() {
 
   const { mutate: createOrganization, isSubmitting: isCreating } =
     useApiMutation("/organizations", "POST");
+  const { mutate: updateOrganization, isSubmitting: isUpdating } =
+    useApiMutation(editOrg ? `/organizations/${editOrg.id}` : "/organizations", "PUT");
+  const { mutate: deleteOrganization, isSubmitting: isDeleting } =
+    useApiMutation(deleteOrg ? `/organizations/${deleteOrg.id}` : "/organizations", "DELETE");
+
+  const openEdit = (org: Organization) => {
+    setEditOrg(org);
+    setEditForm({
+      name_en: org.name_en,
+      name_ar: org.name_ar,
+      cr_number: org.cr_number,
+      vat_number: org.vat_number || "",
+      industry: org.industry,
+      city: org.city,
+      address: org.address,
+      phone: org.phone,
+      email: org.email,
+      website: org.website || "",
+      annual_revenue: org.annual_revenue || 0,
+      employee_count: org.employee_count || 0,
+    });
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm) return;
+    try {
+      await updateOrganization(editForm);
+      toast.success("تم التعديل بنجاح");
+      setEditOrg(null);
+      setEditForm(null);
+      refetchOrganizations();
+    } catch {
+      toast.error("فشل التعديل");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteOrganization({});
+      toast.success("تم الحذف بنجاح");
+      setDeleteOrg(null);
+      refetchOrganizations();
+    } catch {
+      toast.error("فشل الحذف");
+    }
+  };
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,6 +322,22 @@ export default function OrganizationsPage() {
         <span className="text-sm text-stone-600">
           {new Date((item as Organization).created_at).toLocaleDateString()}
         </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(item as Organization); }}
+            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
+          ><Pencil size={14} /></button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteOrg(item as Organization); }}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+          ><Trash2 size={14} /></button>
+        </div>
       ),
     },
   ];
@@ -587,6 +653,77 @@ export default function OrganizationsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal open={!!editOrg} onClose={() => { setEditOrg(null); setEditForm(null); }} title="تعديل المنظمة" size="lg">
+        {editForm && (
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{t("nameEn")} *</label>
+                <input type="text" value={editForm.name_en} onChange={(e) => setEditForm({ ...editForm, name_en: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{t("nameAr")} *</label>
+                <input type="text" value={editForm.name_ar} onChange={(e) => setEditForm({ ...editForm, name_ar: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{t("crNumber")} *</label>
+                <input type="text" value={editForm.cr_number} onChange={(e) => setEditForm({ ...editForm, cr_number: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{t("taxId")}</label>
+                <input type="text" value={editForm.vat_number || ""} onChange={(e) => setEditForm({ ...editForm, vat_number: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{t("industry")} *</label>
+                <input type="text" value={editForm.industry} onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{t("city")} *</label>
+                <input type="text" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("address")} *</label>
+                <input type="text" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("phone")} *</label>
+                <input type="tel" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("email")} *</label>
+                <input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("website")}</label>
+                <input type="url" value={editForm.website || ""} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("annualRevenue")}</label>
+                <input type="number" value={editForm.annual_revenue || 0} onChange={(e) => setEditForm({ ...editForm, annual_revenue: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">{tc("employeeCount")}</label>
+                <input type="number" value={editForm.employee_count || 0} onChange={(e) => setEditForm({ ...editForm, employee_count: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+              <button type="button" onClick={() => { setEditOrg(null); setEditForm(null); }} className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition">{tc("cancel")}</button>
+              <button type="submit" disabled={isUpdating} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50">{isUpdating ? "جارٍ الحفظ..." : "حفظ التعديلات"}</button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteOrg} onClose={() => setDeleteOrg(null)} title="تأكيد الحذف" size="sm">
+        <p className="text-stone-700 mb-6">هل أنت متأكد من حذف <strong>{deleteOrg?.name_ar || deleteOrg?.name_en}</strong>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => setDeleteOrg(null)} className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition">{tc("cancel")}</button>
+          <button onClick={handleDelete} disabled={isDeleting} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50">{isDeleting ? "جارٍ الحذف..." : "حذف"}</button>
+        </div>
       </Modal>
     </div>
   );

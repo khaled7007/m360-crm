@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 
@@ -51,10 +51,43 @@ export default function ContactsPage() {
     is_guarantor: false,
   });
 
+  const [editItem, setEditItem] = useState<Contact | null>(null);
+  const [deleteItem, setDeleteItem] = useState<Contact | null>(null);
+  const [editForm, setEditForm] = useState<Partial<CreateContactRequest>>({ is_guarantor: false });
+
   const { data: organizations } = useApiList<Organization>("/organizations");
   const { data: contacts, pagination, isLoading, error: contactsError, refetch } = useApiList<Contact>("/contacts", { ...page, search: searchQuery || undefined });
   const { mutate: createContact, isSubmitting } =
     useApiMutation<CreateContactRequest, Contact>("/contacts", "POST");
+  const { mutate: updateContact, isSubmitting: isUpdating } =
+    useApiMutation<CreateContactRequest, Contact>(`/contacts/${editItem?.id}`, "PUT");
+  const { mutate: deleteContact, isSubmitting: isDeleting } =
+    useApiMutation<object, void>(`/contacts/${deleteItem?.id}`, "DELETE");
+
+  const openEdit = (item: Contact) => {
+    setEditItem(item);
+    setEditForm({
+      organization_id: item.organization_id,
+      name_en: item.name_en,
+      name_ar: item.name_ar,
+      national_id: item.national_id,
+      phone: item.phone,
+      email: item.email,
+      role: item.role,
+      is_guarantor: item.is_guarantor,
+    });
+  };
+
+  const handleEditInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+    }));
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -95,6 +128,30 @@ export default function ContactsPage() {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateContact(editForm as CreateContactRequest);
+      toast.success("تم التعديل بنجاح");
+      setEditItem(null);
+      setEditForm({ is_guarantor: false });
+      refetch();
+    } catch {
+      toast.error("فشل التعديل");
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteContact({});
+      toast.success("تم الحذف بنجاح");
+      setDeleteItem(null);
+      refetch();
+    } catch {
+      toast.error("فشل الحذف");
+    }
+  };
+
   const columns: Column<Contact>[] = [
     {
       key: "name_en",
@@ -126,6 +183,26 @@ export default function ContactsPage() {
       key: "is_guarantor",
       header: t("guarantor"),
       render: (item) => <StatusBadge status={String(item.is_guarantor)} />,
+    },
+    {
+      key: "actions" as keyof Contact,
+      header: "",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
     },
   ];
 
@@ -179,6 +256,187 @@ export default function ContactsPage() {
           onPageChange={(offset) => setPage((p) => ({ ...p, offset }))}
         />
       )}
+
+      <Modal
+        open={!!editItem}
+        onClose={() => { setEditItem(null); setEditForm({ is_guarantor: false }); }}
+        title="تعديل"
+        size="lg"
+      >
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("nameEn")} *
+              </label>
+              <input
+                type="text"
+                name="name_en"
+                value={editForm.name_en || ""}
+                onChange={handleEditInputChange}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Full name (English)"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("nameAr")}
+              </label>
+              <input
+                type="text"
+                name="name_ar"
+                value={editForm.name_ar || ""}
+                onChange={handleEditInputChange}
+                dir="rtl"
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-right"
+                placeholder="الاسم الكامل (عربي)"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              {t("organization")} *
+            </label>
+            <select
+              name="organization_id"
+              value={editForm.organization_id || ""}
+              onChange={handleEditInputChange}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              required
+            >
+              <option value="">{tc("selectOrganization")}</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name_en}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {t("nationalId")} *
+              </label>
+              <input
+                type="text"
+                name="national_id"
+                value={editForm.national_id || ""}
+                onChange={handleEditInputChange}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Saudi National ID"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {tc("phone")} *
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={editForm.phone || ""}
+                onChange={handleEditInputChange}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="+966..."
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              {tc("email")} *
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={editForm.email || ""}
+              onChange={handleEditInputChange}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="user@example.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              {t("role")} *
+            </label>
+            <input
+              type="text"
+              name="role"
+              value={editForm.role || ""}
+              onChange={handleEditInputChange}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="e.g. Director, Manager"
+              required
+            />
+          </div>
+
+          <div className="pt-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="is_guarantor"
+                checked={editForm.is_guarantor || false}
+                onChange={handleEditInputChange}
+                className="w-4 h-4 text-teal-600 border-stone-300 rounded focus:ring-teal-500"
+              />
+              <span className="text-sm text-stone-700">{t("guarantor")}</span>
+            </label>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => { setEditItem(null); setEditForm({ is_guarantor: false }); }}
+              className="flex-1 px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUpdating ? "..." : "تعديل"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        title="حذف"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-stone-700">هل أنت متأكد من حذف هذا العنصر؟</p>
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteItem(null)}
+              className="px-4 py-2 text-sm text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            >
+              {isDeleting ? "..." : "حذف"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={isModalOpen}

@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -60,11 +60,38 @@ export default function ProductsPage() {
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [formData, setFormData] = useState<CreateProductInput>(defaultForm);
 
+  const [editItem, setEditItem] = useState<Product | null>(null);
+  const [deleteItem, setDeleteItem] = useState<Product | null>(null);
+  const [editForm, setEditForm] = useState<CreateProductInput>(defaultForm);
+
   const { data: products, pagination, isLoading, error: productsError, refetch } = useApiList<Product>("/products", page);
   const { mutate: createProduct, isSubmitting } = useApiMutation<CreateProductInput, Product>(
     "/products",
     "POST"
   );
+  const { mutate: updateProduct, isSubmitting: isUpdating } = useApiMutation<CreateProductInput, Product>(
+    `/products/${editItem?.id}`,
+    "PUT"
+  );
+  const { mutate: deleteProduct, isSubmitting: isDeleting } = useApiMutation<object, void>(
+    `/products/${deleteItem?.id}`,
+    "DELETE"
+  );
+
+  const openEdit = (item: Product) => {
+    setEditItem(item);
+    setEditForm({
+      name_en: item.name_en,
+      name_ar: item.name_ar,
+      product_type: item.product_type,
+      min_amount: item.min_amount,
+      max_amount: item.max_amount,
+      min_tenor_months: item.min_tenor_months,
+      max_tenor_months: item.max_tenor_months,
+      profit_rate: item.profit_rate,
+      is_active: item.is_active,
+    });
+  };
 
   const columns: Column<Product>[] = [
     {
@@ -127,6 +154,26 @@ export default function ProductsPage() {
         <StatusBadge status={item.is_active ? "true" : "false"} />
       ),
     },
+    {
+      key: "actions" as keyof Product,
+      header: "",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,6 +208,30 @@ export default function ProductsPage() {
       refetch();
     } catch {
       toast.error(t("createError"));
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateProduct(editForm);
+      toast.success("تم التعديل بنجاح");
+      setEditItem(null);
+      setEditForm(defaultForm);
+      refetch();
+    } catch {
+      toast.error("فشل التعديل");
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteProduct({});
+      toast.success("تم الحذف بنجاح");
+      setDeleteItem(null);
+      refetch();
+    } catch {
+      toast.error("فشل الحذف");
     }
   };
 
@@ -229,6 +300,168 @@ export default function ProductsPage() {
           onPageChange={(offset) => setPage((p) => ({ ...p, offset }))}
         />
       )}
+
+      <Modal
+        open={!!editItem}
+        onClose={() => { setEditItem(null); setEditForm(defaultForm); }}
+        title="تعديل"
+        size="lg"
+      >
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {field(
+              t("nameEn"),
+              <input
+                type="text"
+                value={editForm.name_en}
+                onChange={(e) => setEditForm({ ...editForm, name_en: e.target.value })}
+                className={inputClass}
+                placeholder="Murabaha SME Financing"
+              />,
+              true
+            )}
+            {field(
+              t("nameAr"),
+              <input
+                type="text"
+                value={editForm.name_ar}
+                onChange={(e) => setEditForm({ ...editForm, name_ar: e.target.value })}
+                className={inputClass}
+                placeholder="تمويل المرابحة للشركات"
+                dir="rtl"
+              />,
+              true
+            )}
+            {field(
+              t("productType"),
+              <select
+                value={editForm.product_type}
+                onChange={(e) => setEditForm({ ...editForm, product_type: e.target.value as "murabaha" })}
+                className={inputClass}
+              >
+                <option value="murabaha">Murabaha</option>
+              </select>
+            )}
+            {field(
+              t("profitRate") + " (%)",
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={editForm.profit_rate}
+                onChange={(e) => setEditForm({ ...editForm, profit_rate: parseFloat(e.target.value) || 0 })}
+                className={inputClass}
+                placeholder="5.50"
+              />,
+              true
+            )}
+            {field(
+              t("minAmount") + " (SAR)",
+              <input
+                type="number"
+                min="0"
+                value={editForm.min_amount}
+                onChange={(e) => setEditForm({ ...editForm, min_amount: parseFloat(e.target.value) || 0 })}
+                className={inputClass}
+                placeholder="50000"
+              />,
+              true
+            )}
+            {field(
+              t("maxAmount") + " (SAR)",
+              <input
+                type="number"
+                min="0"
+                value={editForm.max_amount}
+                onChange={(e) => setEditForm({ ...editForm, max_amount: parseFloat(e.target.value) || 0 })}
+                className={inputClass}
+                placeholder="5000000"
+              />,
+              true
+            )}
+            {field(
+              t("minTenor"),
+              <input
+                type="number"
+                min="1"
+                value={editForm.min_tenor_months}
+                onChange={(e) => setEditForm({ ...editForm, min_tenor_months: parseInt(e.target.value) || 1 })}
+                className={inputClass}
+                placeholder="6"
+              />
+            )}
+            {field(
+              t("maxTenor"),
+              <input
+                type="number"
+                min="1"
+                value={editForm.max_tenor_months}
+                onChange={(e) => setEditForm({ ...editForm, max_tenor_months: parseInt(e.target.value) || 1 })}
+                className={inputClass}
+                placeholder="60"
+              />
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="edit_is_active"
+              checked={editForm.is_active}
+              onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+              className="h-4 w-4 text-teal-600 border-stone-300 rounded"
+            />
+            <label htmlFor="edit_is_active" className="text-sm font-medium text-stone-700">
+              {t("activeLabel")}
+            </label>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => { setEditItem(null); setEditForm(defaultForm); }}
+              className="px-4 py-2 text-sm text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+            >
+              {isUpdating ? "..." : "تعديل"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        title="حذف"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-stone-700">هل أنت متأكد من حذف هذا العنصر؟</p>
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteItem(null)}
+              className="px-4 py-2 text-sm text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
+            >
+              {tc("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            >
+              {isDeleting ? "..." : "حذف"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={isModalOpen}
