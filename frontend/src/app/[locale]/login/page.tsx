@@ -49,10 +49,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div>
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-5xl font-bold text-white tracking-tight" style={{ fontFamily: "serif" }}>ذرك</h1>
-              <span className="text-lg text-[#56b4b6] font-medium tracking-widest uppercase">Thra</span>
-            </div>
+            <h1 className="text-4xl font-bold text-white tracking-tight">ClientsCycle</h1>
             <p className="text-[#daa929] mt-2 text-base font-medium">{t("smeLendingCrm")}</p>
           </div>
 

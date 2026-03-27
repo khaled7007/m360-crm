@@ -111,13 +111,10 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-14 flex items-center px-4 border-b border-[#1e3e41]">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-tight text-white" style={{ fontFamily: "serif" }}>ذرك</span>
-            <span className="text-xs text-[#56b4b6] font-medium tracking-widest uppercase mt-0.5">Thra</span>
-          </div>
+          <span className="text-lg font-bold tracking-tight text-white">{t("appName")}</span>
         )}
         {collapsed && !mobileOpen && (
-          <span className="mx-auto text-base font-bold text-white" style={{ fontFamily: "serif" }}>ذ</span>
+          <span className="mx-auto text-base font-bold text-white">CC</span>
         )}
         <button
           onClick={() => { if (mobileOpen) closeMobile(); else setCollapsed(!collapsed); }}
