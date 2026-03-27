@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { PaginationControls } from "@/components/ui/PaginationControls";
-import { Plus, Building2 } from "lucide-react";
+import { Plus, Building2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
@@ -73,8 +73,10 @@ export default function LeadsPage() {
   const { data: leads, pagination, isLoading: isLoadingLeads, error: leadsError, refetch: refetchLeads } =
     useApiList<Lead>("/leads", { ...page, search: searchQuery || undefined });
 
+  const [deleteLead, setDeleteLead] = useState<Lead | null>(null);
   const { mutate: createLead, isSubmitting: isCreating } = useApiMutation("/leads", "POST");
   const { mutate: updateLead } = useApiMutation<Partial<Lead>>(`/leads/${convertLead?.id}`, "PUT");
+  const { mutate: doDelete, isSubmitting: isDeleting } = useApiMutation<object, void>(`/leads/${deleteLead?.id}`, "DELETE");
 
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +89,11 @@ export default function LeadsPage() {
     } catch {
       toast.error(t("createError"));
     }
+  };
+
+  const handleDelete = async () => {
+    try { await doDelete({}); toast.success("تم أرشفة العميل المحتمل"); setDeleteLead(null); refetchLeads(); }
+    catch { toast.error("فشل الحذف"); }
   };
 
   const handleConvert = async () => {
@@ -168,24 +175,26 @@ export default function LeadsPage() {
         <span className="text-sm text-stone-600">{new Date(item.created_at).toLocaleDateString()}</span>
       ),
     },
-    ...(canConvert ? [{
+    {
       key: "actions" as keyof Lead,
       header: "",
       render: (item: Lead) => (
-        item.status !== "converted" ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); setConvertLead(item); }}
-            className="flex items-center gap-1 px-3 py-1 text-xs border border-teal-400 text-teal-700 rounded hover:bg-teal-50 transition"
-            title={t("convertToOrg")}
-          >
-            <Building2 size={13} />
-            {t("convertToOrg")}
-          </button>
-        ) : (
-          <span className="text-xs text-stone-400 px-2">{t("statuses.converted")}</span>
-        )
+        <div className="flex items-center gap-1">
+          {canConvert && item.status !== "converted" && (
+            <button onClick={(e) => { e.stopPropagation(); setConvertLead(item); }}
+              className="flex items-center gap-1 px-2 py-1 text-xs border border-teal-400 text-teal-700 rounded hover:bg-teal-50 transition">
+              <Building2 size={13} />{t("convertToOrg")}
+            </button>
+          )}
+          {canCreate && (
+            <button onClick={(e) => { e.stopPropagation(); setDeleteLead(item); }}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded transition">
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       ),
-    }] : []),
+    },
   ];
 
   const handleRowClick = (lead: Lead) => {
@@ -369,7 +378,20 @@ export default function LeadsPage() {
         title={t("convertToOrg")}
         size="sm"
       >
-        {convertLead && (
+        <Modal open={!!deleteLead} onClose={() => setDeleteLead(null)} title="نقل إلى الأرشيف" size="sm">
+        {deleteLead && (
+          <div className="space-y-4">
+            <p className="text-sm text-stone-600">سيتم نقل <span className="font-semibold">{deleteLead.company_name || deleteLead.contact_name}</span> إلى الأرشيف.</p>
+            <div className="flex gap-3 justify-end pt-2 border-t border-stone-200">
+              <button onClick={() => setDeleteLead(null)} className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition">{tc("cancel")}</button>
+              <button onClick={handleDelete} disabled={isDeleting} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50">
+                <Trash2 size={15} />{isDeleting ? "جارٍ..." : "نقل للأرشيف"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      {convertLead && (
           <div className="space-y-4">
             <p className="text-sm text-stone-600">
               سيتم إنشاء طالب تمويل جديد باسم <span className="font-semibold text-stone-800">{convertLead.company_name || convertLead.contact_name}</span> وتغيير حالة العميل المحتمل إلى &quot;محوّل&quot;.

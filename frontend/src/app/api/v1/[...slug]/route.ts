@@ -106,6 +106,7 @@ const RESOURCE_KEYS: Record<string, string> = {
   committee: "committee", packages: "committee", users: "users",
   "credit-assessments": "credit_assessments",
 };
+const ARCHIVABLE = ["leads", "organizations", "contacts"];
 
 // ─── GET ───────────────────────────────────────────────────────────────────
 export async function GET(
@@ -261,6 +262,12 @@ export async function GET(
       (!entityId   || d.entity_id   === entityId)
     );
     return ok(filtered);
+  }
+
+  // ARCHIVE LIST
+  if (r === "archive") {
+    const archive = await getCol("archive");
+    return ok(paginate(archive, req));
   }
 
   // GENERIC CRUD
@@ -711,12 +718,33 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
   }
 
+  // ARCHIVE PERMANENT DELETE
+  if (r === "archive") {
+    const archive = await getCol("archive");
+    const idx = archive.findIndex((i) => i.id === id);
+    if (idx === -1) return err("Not found", 404);
+    archive.splice(idx, 1);
+    await setCol("archive", archive);
+    return new NextResponse(null, { status: 204 });
+  }
+
   const colKey = RESOURCE_KEYS[r];
   if (!colKey) return err("Not found", 404);
 
   const collection = await getCol(colKey);
   const idx = collection.findIndex((i) => i.id === id);
   if (idx === -1) return err("Not found", 404);
+
+  // soft-delete archivable resources
+  if (ARCHIVABLE.includes(r)) {
+    const [item] = collection.splice(idx, 1);
+    const archive = await getCol("archive");
+    archive.push({ ...item, _type: r, _archived_at: now() });
+    await setCol("archive", archive);
+    await setCol(colKey, collection);
+    return new NextResponse(null, { status: 204 });
+  }
+
   collection.splice(idx, 1);
   await setCol(colKey, collection);
   return new NextResponse(null, { status: 204 });

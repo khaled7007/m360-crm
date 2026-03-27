@@ -27,6 +27,7 @@ import {
   Menu,
   X,
   KeyRound,
+  Archive,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { LucideIcon } from "lucide-react";
@@ -56,6 +57,7 @@ const navItems: NavItem[] = [
   { key: "users", href: "/users", icon: Users },
   { key: "pipeline", href: "/pipeline", icon: LayoutGrid },
   { key: "notifications", href: "/notifications", icon: Bell },
+  { key: "archive", href: "/archive", icon: Archive },
 ];
 
 export function Sidebar() {
