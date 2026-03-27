@@ -59,6 +59,7 @@ interface AppFormInput {
   requested_tenor_months: number;
   purpose: string;
   pipeline_stage: string;
+  reference_number?: string;
 }
 
 const emptyForm: AppFormInput = {
@@ -182,6 +183,7 @@ export default function ApplicationsPage() {
       requested_tenor_months: item.requested_tenor_months || 12,
       purpose: item.purpose || "",
       pipeline_stage: item.pipeline_stage || "new",
+      reference_number: item.reference_number || "",
     });
     setEditOrgSearch("");
   };
@@ -517,6 +519,18 @@ export default function ApplicationsPage() {
         title="تعديل الطلب"
       >
         <form onSubmit={handleEditApplication} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              الرقم المرجعي
+            </label>
+            <input
+              type="text"
+              value={editForm.reference_number || ""}
+              onChange={(e) => setEditForm({ ...editForm, reference_number: e.target.value })}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono text-sm"
+              placeholder="APP-2026-001"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
