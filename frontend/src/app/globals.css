@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+/* ── Thra Brand Identity ────────────────────────────────────────── */
+@theme {
+  /* Override teal palette → Thra greens & teal */
+  --color-teal-50:  #f1dace;
+  --color-teal-100: #e6b88d;
+  --color-teal-200: #daa929;
+  --color-teal-300: #c4a020;
+  --color-teal-400: #56b4b6;
+  --color-teal-500: #56b4b6;
+  --color-teal-600: #285356;
+  --color-teal-700: #1e3e41;
+  --color-teal-800: #002825;
+  --color-teal-900: #001a17;
+
+  /* Thra brand tokens */
+  --color-brand-dark:   #002825;
+  --color-brand-mid:    #285356;
+  --color-brand-teal:   #56b4b6;
+  --color-brand-gold:   #daa929;
+  --color-brand-cream:  #f1dace;
+  --color-brand-peach:  #e6b88d;
+}
+
 :root {
   --background: #fafaf9;
   --foreground: #1c1917;

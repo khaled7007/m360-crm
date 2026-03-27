@@ -39,16 +39,21 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Brand Panel */}
-      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden bg-gradient-to-br from-teal-600 via-teal-700 to-stone-900">
-        <div className="absolute inset-0 opacity-[0.07]" style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px',
+      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden" style={{ background: "linear-gradient(135deg, #002825 0%, #1e3e41 60%, #285356 100%)" }}>
+        {/* Thra geometric pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.06]" style={{
+          backgroundImage: `repeating-linear-gradient(45deg, #56b4b6 0px, #56b4b6 1px, transparent 1px, transparent 40px), repeating-linear-gradient(-45deg, #daa929 0px, #daa929 1px, transparent 1px, transparent 40px)`,
         }} />
+        {/* Gold accent bar */}
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#daa929] via-[#56b4b6] to-transparent" />
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">ClientsCycle</h1>
-            <p className="text-teal-200 mt-1 text-lg">{t("smeLendingCrm")}</p>
+            <div className="flex items-baseline gap-3">
+              <h1 className="text-5xl font-bold text-white tracking-tight" style={{ fontFamily: "serif" }}>ذرك</h1>
+              <span className="text-lg text-[#56b4b6] font-medium tracking-widest uppercase">Thra</span>
+            </div>
+            <p className="text-[#daa929] mt-2 text-base font-medium">{t("smeLendingCrm")}</p>
           </div>
 
           <div className="space-y-8">
@@ -56,28 +61,28 @@ export default function LoginPage() {
               <h2 className="text-3xl font-bold text-white leading-tight">
                 {t("tagline")}
               </h2>
-              <p className="mt-4 text-teal-100 text-lg max-w-md leading-relaxed">
+              <p className="mt-4 text-[#9fc4c5] text-base max-w-md leading-relaxed">
                 {t("description")}
               </p>
             </div>
 
             <div className="flex gap-8">
-              <div className="border-l-2 border-teal-400/40 pl-4">
+              <div className="border-l-2 border-[#daa929]/50 pl-4">
                 <p className="text-2xl font-bold text-white">8</p>
-                <p className="text-sm text-teal-200">{t("statsUserRoles")}</p>
+                <p className="text-sm text-[#9fc4c5]">{t("statsUserRoles")}</p>
               </div>
-              <div className="border-l-2 border-teal-400/40 pl-4">
+              <div className="border-l-2 border-[#daa929]/50 pl-4">
                 <p className="text-2xl font-bold text-white">5</p>
-                <p className="text-sm text-teal-200">{t("statsSaudiIntegrations")}</p>
+                <p className="text-sm text-[#9fc4c5]">{t("statsSaudiIntegrations")}</p>
               </div>
-              <div className="border-l-2 border-teal-400/40 pl-4">
+              <div className="border-l-2 border-[#daa929]/50 pl-4">
                 <p className="text-2xl font-bold text-white">9</p>
-                <p className="text-sm text-teal-200">{t("statsWorkflowStages")}</p>
+                <p className="text-sm text-[#9fc4c5]">{t("statsWorkflowStages")}</p>
               </div>
             </div>
           </div>
 
-          <p className="text-sm text-teal-300/60">{t("copyright")}</p>
+          <p className="text-sm text-[#56b4b6]/50">{t("copyright")}</p>
         </div>
       </div>
 

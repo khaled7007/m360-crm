@@ -109,20 +109,26 @@ export function Sidebar() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="h-14 flex items-center px-4 border-b border-stone-700">
+      <div className="h-14 flex items-center px-4 border-b border-[#1e3e41]">
         {!collapsed && (
-          <span className="text-lg font-bold tracking-tight">{t("appName")}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold tracking-tight text-white" style={{ fontFamily: "serif" }}>ذرك</span>
+            <span className="text-xs text-[#56b4b6] font-medium tracking-widest uppercase mt-0.5">Thra</span>
+          </div>
+        )}
+        {collapsed && !mobileOpen && (
+          <span className="mx-auto text-base font-bold text-white" style={{ fontFamily: "serif" }}>ذ</span>
         )}
         <button
           onClick={() => { if (mobileOpen) closeMobile(); else setCollapsed(!collapsed); }}
-          className={`${collapsed && !mobileOpen ? "mx-auto" : "ms-auto"} p-1 rounded hover:bg-stone-700 hidden lg:block`}
+          className={`${collapsed && !mobileOpen ? "mx-auto mt-0" : "ms-auto"} p-1 rounded hover:bg-[#1e3e41] hidden lg:block text-[#56b4b6]`}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
         <button
           onClick={closeMobile}
-          className="ms-auto p-1 rounded hover:bg-stone-700 lg:hidden"
+          className="ms-auto p-1 rounded hover:bg-[#1e3e41] lg:hidden text-[#56b4b6]"
           aria-label="Close menu"
         >
           <X size={16} />
@@ -142,8 +148,8 @@ export function Sidebar() {
               href={fullHref}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-0.5 transition-colors ${
                 isActive
-                  ? "bg-teal-600 text-white"
-                  : "text-stone-300 hover:bg-stone-800 hover:text-white"
+                  ? "bg-[#daa929]/15 text-[#daa929] border-r-2 border-[#daa929]"
+                  : "text-[#9fc4c5] hover:bg-[#1e3e41] hover:text-white"
               }`}
               title={collapsed && !mobileOpen ? label : undefined}
               aria-current={isActive ? "page" : undefined}
@@ -151,7 +157,7 @@ export function Sidebar() {
               <item.icon size={18} className="flex-shrink-0" />
               {(!collapsed || mobileOpen) && <span className="flex-1">{label}</span>}
               {item.key === "notifications" && unreadCount > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-medium text-white">
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#daa929] text-[#002825] px-1.5 text-xs font-bold">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -161,11 +167,11 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-stone-700 p-3">
+      <div className="border-t border-[#1e3e41] p-3">
         {(!collapsed || mobileOpen) && user && (
           <div className="mb-2">
-            <p className="text-sm font-medium truncate">{user.name_en}</p>
-            <p className="text-xs text-stone-400 truncate">{tu(`roleLabels.${user.role}` as Parameters<typeof tu>[0])}</p>
+            <p className="text-sm font-medium truncate text-white">{user.name_en}</p>
+            <p className="text-xs text-[#56b4b6] truncate">{tu(`roleLabels.${user.role}` as Parameters<typeof tu>[0])}</p>
           </div>
         )}
         <div className="mb-2">
@@ -173,7 +179,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={() => setShowPwdModal(true)}
-          className="flex items-center gap-2 text-sm text-stone-400 hover:text-white w-full px-1 mb-1"
+          className="flex items-center gap-2 text-sm text-[#9fc4c5] hover:text-white w-full px-1 mb-1"
           title="تغيير كلمة المرور"
         >
           <KeyRound size={16} />
@@ -181,7 +187,7 @@ export function Sidebar() {
         </button>
         <button
           onClick={logout}
-          className="flex items-center gap-2 text-sm text-stone-400 hover:text-white w-full px-1"
+          className="flex items-center gap-2 text-sm text-[#9fc4c5] hover:text-white w-full px-1"
           title={t("logout")}
         >
           <LogOut size={16} />
@@ -196,7 +202,7 @@ export function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-40 p-2 rounded-md bg-stone-900 text-white lg:hidden"
+        className="fixed top-3 left-3 z-40 p-2 rounded-md bg-[#002825] text-white lg:hidden"
         aria-label="Open menu"
       >
         <Menu size={20} />
@@ -213,7 +219,7 @@ export function Sidebar() {
 
       {/* Mobile sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-stone-900 text-white flex flex-col transition-transform duration-200 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-[#002825] text-white flex flex-col transition-transform duration-200 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         role="navigation"
@@ -225,7 +231,7 @@ export function Sidebar() {
       <aside
         className={`${
           collapsed ? "w-16" : "w-60"
-        } h-screen bg-stone-900 text-white flex-col transition-all duration-200 flex-shrink-0 hidden lg:flex`}
+        } h-screen bg-[#002825] text-white flex-col transition-all duration-200 flex-shrink-0 hidden lg:flex`}
         role="navigation"
       >
         {sidebarContent}
