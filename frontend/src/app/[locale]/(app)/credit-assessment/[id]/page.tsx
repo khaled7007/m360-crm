@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApiGet, useApiMutation } from "@/lib/use-api";
 import { toast } from "sonner";
-import { ArrowLeft, Play, Send } from "lucide-react";
+import { ArrowLeft, Play, Send, FileDown } from "lucide-react";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { DocumentList } from "@/components/ui/DocumentList";
@@ -217,6 +217,14 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
               {isScoring ? t("scoring") : t("runScoring")}
             </button>
           )}
+          <button
+            onClick={() => window.open(`/${locale}/print/credit-assessment/${id}`, "_blank")}
+            className="flex items-center gap-2 px-4 py-2 bg-stone-700 text-white rounded-lg hover:bg-stone-800 transition"
+            title="تصدير PDF"
+          >
+            <FileDown size={16} />
+            تصدير PDF
+          </button>
           {score && (
             <button
               onClick={() => setSendOpen(true)}
