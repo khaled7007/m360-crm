@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApiGet, useApiList, useApiMutation } from "@/lib/use-api";
 import { toast } from "sonner";
-import { ArrowLeft, Play, Send, FileDown } from "lucide-react";
+import { ArrowLeft, Play, Send, FileDown, Pencil, CheckCircle2, Printer } from "lucide-react";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { DocumentList } from "@/components/ui/DocumentList";
@@ -141,6 +141,26 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
     "POST"
   );
 
+  const { data: allPackages } = useApiList<{ id: string; credit_assessment_id?: string; status: string }>(
+    "/packages", { limit: 500 }
+  );
+  const committeePackage = allPackages.find((p) => p.credit_assessment_id === id);
+
+  const { mutate: finalizeAssessment, isSubmitting: isFinalizing } = useApiMutation<Record<string, never>>(
+    `/credit-assessments/${id}/finalize`,
+    "POST"
+  );
+
+  const handleFinalize = async () => {
+    try {
+      await finalizeAssessment({});
+      toast.success("تم اعتماد التقييم نهائياً");
+      refetch();
+    } catch {
+      toast.error("فشل اعتماد التقييم");
+    }
+  };
+
   const handleScore = async () => {
     try {
       await runScore({});
@@ -237,7 +257,7 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
             <FileDown size={16} />
             تصدير PDF
           </button>
-          {score && (
+          {score && !committeePackage && (
             <button
               onClick={() => setSendOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
@@ -245,6 +265,40 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
               <Send size={16} />
               {t("sendToCommittee")}
             </button>
+          )}
+          {committeePackage && (committeePackage.status === "approved" || committeePackage.status === "rejected") && (
+            <>
+              <button
+                onClick={() => window.open(`/${locale}/print/committee/${committeePackage.id}`, "_blank")}
+                className="flex items-center gap-2 px-4 py-2 border border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition"
+              >
+                <Printer size={16} />
+                قرار اللجنة PDF
+              </button>
+              <Link
+                href={`/${locale}/credit-assessment/${id}/edit`}
+                className="flex items-center gap-2 px-4 py-2 border border-amber-400 text-amber-700 rounded-lg hover:bg-amber-50 transition"
+              >
+                <Pencil size={16} />
+                تعديل التقييم
+              </Link>
+              {assessment?.status !== "finalized" && (
+                <button
+                  onClick={handleFinalize}
+                  disabled={isFinalizing}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                >
+                  <CheckCircle2 size={16} />
+                  {isFinalizing ? "جارٍ الاعتماد..." : "اعتماد نهائي"}
+                </button>
+              )}
+              {assessment?.status === "finalized" && (
+                <span className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold text-sm">
+                  <CheckCircle2 size={16} />
+                  معتمد نهائياً
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>

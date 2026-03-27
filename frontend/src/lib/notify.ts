@@ -76,6 +76,35 @@ export async function notifySentToCredit(
   });
 }
 
+/** Committee reached a decision → notify credit team with PDF link */
+export async function notifyCommitteeDecision(
+  token: string,
+  packageId: string,
+  assessmentName: string,
+  decision: "approved" | "rejected"
+) {
+  const decisionAr = decision === "approved" ? "قبول" : "رفض";
+  const title = `قرار اللجنة: ${decisionAr}`;
+  const body  = `صدر قرار اللجنة بـ${decisionAr} التقييم الائتماني "${assessmentName}". يمكنك تعديل التقييم أو اعتماده نهائياً.`;
+
+  await createNotifications(token, {
+    userIds:    ["u-003", "u-004"], // credit_manager + credit_officer
+    title, body,
+    type:       "committee_decision",
+    entityType: "committee",
+    entityId:   packageId,
+  });
+
+  await sendEmailNotifications({
+    recipients: [
+      { name: "عبدالمجيد العنزي", email: "aanazi@tharaco.sa"   },
+      { name: "فيصل الشلوي",      email: "falshalwi@tharaco.sa" },
+    ],
+    subject: title,
+    body: `${body}\n\nرابط تقرير اللجنة: /ar/print/committee/${packageId}`,
+  });
+}
+
 /** Application status changed → notify relevant users */
 export async function notifyStatusChange(
   token: string,

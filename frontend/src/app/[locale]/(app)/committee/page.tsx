@@ -7,9 +7,12 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { useApiList, useApiMutation, useApiGet } from "@/lib/use-api";
-import { Plus, CheckCircle2, Eye } from "lucide-react";
+import { Plus, CheckCircle2, Eye, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/ui/RoleGuard";
+import { useAuth } from "@/lib/auth-context";
+import { useLocale } from "next-intl";
+import { notifyCommitteeDecision } from "@/lib/notify";
 
 interface CreditAssessmentRef {
   id: string;
@@ -35,7 +38,7 @@ interface CreatePackageInput {
 }
 
 interface VoteInput {
-  decision: "approve" | "reject" | "defer";
+  decision: "approve" | "reject";
   comments: string;
 }
 
@@ -230,6 +233,8 @@ const truncateId = (id: string) => `${id.slice(0, 8)}…`;
 export default function CommitteePage() {
   const t = useTranslations("committee");
   const tc = useTranslations("common");
+  const locale = useLocale();
+  const { user, token } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
   const [voteOpen, setVoteOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<CommitteePackage | null>(null);
@@ -288,9 +293,24 @@ export default function CommitteePage() {
     e.preventDefault();
     if (!selectedPackage) return;
     try {
-      await castVote(voteForm);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (castVote as (v: any) => Promise<any>)({
+        ...voteForm,
+        voter_id: user?.id || "u-001",
+        voter_name: user?.name_ar || user?.name_en || "",
+      }) as { votes_for?: number; votes_against?: number } | undefined;
       toast.success(t("voteSuccess"));
       setVoteOpen(false);
+      // check if package reached majority after this vote — send notification
+      const quorum = selectedPackage.quorum_required || 3;
+      const majority = Math.floor(quorum / 2) + 1;
+      const newFor = (selectedPackage.votes_for || 0) + (voteForm.decision === "approve" ? 1 : 0);
+      const newAgainst = (selectedPackage.votes_against || 0) + (voteForm.decision === "reject" ? 1 : 0);
+      if (token && (newFor >= majority || newAgainst >= majority)) {
+        const decision = newFor >= majority ? "approved" : "rejected";
+        const assessmentName = creditAssessments.find(ca => ca.id === selectedPackage.credit_assessment_id)?.project_name || selectedPackage.id;
+        await notifyCommitteeDecision(token, selectedPackage.id, assessmentName, decision).catch(() => null);
+      }
       setSelectedPackage(null);
       setVoteForm({ decision: "approve", comments: "" });
       refetch();
@@ -368,6 +388,18 @@ export default function CommitteePage() {
             >
               <Eye size={12} />
               عرض التقييم
+            </button>
+          )}
+          {(item.status === "approved" || item.status === "rejected") && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/${locale}/print/committee/${item.id}`, "_blank");
+              }}
+              className="flex items-center gap-1 px-3 py-1 text-xs border border-indigo-300 text-indigo-700 rounded hover:bg-indigo-50 transition"
+            >
+              <Printer size={12} />
+              PDF
             </button>
           )}
           <button
@@ -535,33 +567,28 @@ export default function CommitteePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
+              <label className="block text-sm font-medium text-stone-700 mb-3">
                 {t("decision")} *
               </label>
-              <div className="flex gap-3">
-                {(["approve", "reject", "defer"] as const).map((d) => (
-                  <label
+              <div className="grid grid-cols-2 gap-4">
+                {(["approve", "reject"] as const).map((d) => (
+                  <button
                     key={d}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition text-sm font-medium ${
+                    type="button"
+                    onClick={() => setVoteForm({ ...voteForm, decision: d })}
+                    className={`flex flex-col items-center justify-center gap-2 px-4 py-5 border-2 rounded-xl cursor-pointer transition font-semibold text-base ${
                       voteForm.decision === d
                         ? d === "approve"
-                          ? "border-green-500 bg-green-50 text-green-700"
-                          : d === "reject"
-                          ? "border-red-500 bg-red-50 text-red-700"
-                          : "border-stone-400 bg-stone-100 text-stone-700"
-                        : "border-stone-300 text-stone-600 hover:bg-stone-50"
+                          ? "border-green-500 bg-green-50 text-green-700 shadow-sm"
+                          : "border-red-500 bg-red-50 text-red-700 shadow-sm"
+                        : "border-stone-200 text-stone-500 hover:bg-stone-50"
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="decision"
-                      value={d}
-                      checked={voteForm.decision === d}
-                      onChange={() => setVoteForm({ ...voteForm, decision: d })}
-                      className="sr-only"
-                    />
+                    <span className={`text-3xl ${voteForm.decision === d ? (d === "approve" ? "text-green-600" : "text-red-600") : "text-stone-400"}`}>
+                      {d === "approve" ? "✓" : "✗"}
+                    </span>
                     {t(d)}
-                  </label>
+                  </button>
                 ))}
               </div>
             </div>

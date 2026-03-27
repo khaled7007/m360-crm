@@ -367,24 +367,50 @@ export async function POST(
   if ((r === "committee" || r === "packages") && action === "vote") {
     const body = await req.json().catch(() => ({})) as AnyRecord;
     const committee = await getCol("committee");
-    const pkg = committee.find((c) => c.id === id) as AnyRecord & { votes: AnyRecord[]; votes_for: number; votes_against: number; quorum_required: number };
+    const pkg = committee.find((c) => c.id === id) as AnyRecord & { votes: AnyRecord[]; votes_for: number; votes_against: number; quorum_required: number; status: string; decision_date: string | null };
     if (!pkg) return err("Not found", 404);
-    const vote = { id: uid(), package_id: id, voter_id: "u-001", ...body, voted_at: now() };
+    if (pkg.status !== "pending") return err("Package already decided", 400);
+    const vote = { id: uid(), package_id: id, voter_id: body.voter_id || "u-001", voter_name: body.voter_name || "", ...body, voted_at: now() };
     if (!pkg.votes) pkg.votes = [];
     pkg.votes.push(vote);
     // update vote counts
-    if (body.decision === "approve" || body.decision === "approve_with_conditions") {
+    if (body.decision === "approve") {
       pkg.votes_for = (pkg.votes_for || 0) + 1;
     } else if (body.decision === "reject") {
       pkg.votes_against = (pkg.votes_against || 0) + 1;
     }
-    // check quorum and update status
+    // majority = more than half of quorum_required
     const quorum = pkg.quorum_required || 3;
-    if (pkg.votes_for >= quorum) pkg.status = "approved";
-    else if (pkg.votes_against >= quorum) pkg.status = "rejected";
+    const majority = Math.floor(quorum / 2) + 1;
+    const prevStatus = pkg.status;
+    if (pkg.votes_for >= majority) { pkg.status = "approved"; pkg.decision_date = now(); }
+    else if (pkg.votes_against >= majority) { pkg.status = "rejected"; pkg.decision_date = now(); }
     pkg.updated_at = now();
     await setCol("committee", committee);
+    // notify credit team when decision is reached
+    if (pkg.status !== prevStatus && (pkg.status === "approved" || pkg.status === "rejected")) {
+      const decisionAr = pkg.status === "approved" ? "قبول" : "رفض";
+      await notifyRoles(
+        ["credit_manager", "credit_officer"],
+        `قرار اللجنة: ${decisionAr}`,
+        `صدر قرار اللجنة بـ${decisionAr} التقييم الائتماني. يمكنك الاطلاع على تفاصيل التصويت وتعديل التقييم أو اعتماده نهائياً.`,
+        "committee_decision",
+        "committee",
+        id
+      );
+    }
     return ok(vote, 201);
+  }
+
+  // CREDIT ASSESSMENT FINALIZE
+  if (r === "credit-assessments" && id && action === "finalize") {
+    const assessments = await getCol("credit_assessments");
+    const a = assessments.find((x) => x.id === id) as AnyRecord;
+    if (!a) return err("Not found", 404);
+    a.status = "finalized";
+    a.updated_at = now();
+    await setCol("credit_assessments", assessments);
+    return ok(a);
   }
 
   // CREDIT ASSESSMENT SCORE
