@@ -75,6 +75,9 @@ interface Assessment {
   appraisal_1?: number;
   appraisal_2?: number;
   financing_amount?: number;
+  murabaha_rate?: number;
+  tenor_months?: number;
+  repayment_mechanism?: string;
 }
 
 interface Organization {
@@ -623,6 +626,90 @@ export default function PrintCreditAssessmentPage({ params }: { params: Promise<
             </table>
           </div>
         )}
+
+        {/* ── Financing & Repayment Schedule ── */}
+        {assessment.financing_amount && assessment.financing_amount > 0 && assessment.murabaha_rate && assessment.murabaha_rate > 0 && assessment.tenor_months && assessment.tenor_months > 0 && (() => {
+          const principal = assessment.financing_amount!;
+          const rate = assessment.murabaha_rate!;
+          const tenor = assessment.tenor_months!;
+          const mech = assessment.repayment_mechanism || "monthly";
+          const mechLabels: Record<string, string> = { monthly: "شهري", quarterly: "ربع سنوي", semi_annual: "نصف سنوي", annual: "سنوي", balloon: "دفعة واحدة" };
+          const periodsPerYear: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1, balloon: 1 };
+          const ppy = periodsPerYear[mech] || 12;
+          const numPayments = mech === "balloon" ? 1 : Math.round(tenor / (12 / ppy));
+          const totalProfit = principal * (rate / 100) * (tenor / 12);
+          const totalAmount = principal + totalProfit;
+          const installment = totalAmount / numPayments;
+          const principalPerPayment = principal / numPayments;
+          const profitPerPayment = totalProfit / numPayments;
+          const fmtN = (n: number) => n.toLocaleString("ar-SA", { maximumFractionDigits: 0 });
+          const schedule = Array.from({ length: numPayments }, (_, i) => ({
+            num: i + 1,
+            installment,
+            principal: principalPerPayment,
+            profit: profitPerPayment,
+            balance: Math.max(principal - principalPerPayment * (i + 1), 0),
+          }));
+
+          return (
+            <div style={{ padding: "0 36px 24px", pageBreakBefore: "always" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#315453", marginBottom: 12, paddingBottom: 6, borderBottom: "1.5px solid #e0e0e0" }}>
+                شروط التمويل وجدول السداد
+              </div>
+              {/* Summary */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 16 }}>
+                {[
+                  { label: "مبلغ التمويل", value: `${fmtN(principal)} ر.س` },
+                  { label: "مدة التمويل", value: `${tenor} شهراً` },
+                  { label: "نسبة المرابحة", value: `${rate}% سنوياً` },
+                  { label: "آلية السداد", value: mechLabels[mech] || mech },
+                  { label: "قيمة القسط", value: `${fmtN(installment)} ر.س` },
+                ].map((item) => (
+                  <div key={item.label} style={{ background: "#f8f7f5", borderRadius: 6, padding: "8px 10px", textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: "#888", marginBottom: 4 }}>{item.label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a1a" }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Totals */}
+              <div style={{ display: "flex", justifyContent: "space-between", background: "#f0faf8", border: "1px solid #9DBDBF", borderRadius: 6, padding: "8px 16px", fontSize: 11, marginBottom: 16 }}>
+                <span>إجمالي الربح: <strong style={{ color: "#315453" }}>{fmtN(totalProfit)} ر.س</strong></span>
+                <span>إجمالي التمويل: <strong>{fmtN(totalAmount)} ر.س</strong></span>
+                <span>عدد الأقساط: <strong>{numPayments}</strong></span>
+              </div>
+              {/* Table */}
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr style={{ background: "#315453", color: "#fff" }}>
+                    <th style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>#</th>
+                    <th style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>قيمة القسط (ر.س)</th>
+                    <th style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>الأصل (ر.س)</th>
+                    <th style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>الربح (ر.س)</th>
+                    <th style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>الرصيد المتبقي (ر.س)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {schedule.map((row) => (
+                    <tr key={row.num} style={{ background: row.num % 2 === 0 ? "#f8f7f5" : "#fff", borderBottom: "1px solid #f0f0f0" }}>
+                      <td style={{ padding: "5px 10px", color: "#666", fontWeight: 600 }}>{row.num}</td>
+                      <td style={{ padding: "5px 10px", fontWeight: 700, color: "#4338ca" }}>{fmtN(row.installment)}</td>
+                      <td style={{ padding: "5px 10px" }}>{fmtN(row.principal)}</td>
+                      <td style={{ padding: "5px 10px", color: "#315453" }}>{fmtN(row.profit)}</td>
+                      <td style={{ padding: "5px 10px", fontWeight: 600 }}>{fmtN(row.balance)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: "#315453", color: "#fff", fontWeight: 700 }}>
+                    <td style={{ padding: "6px 10px" }}>الإجمالي</td>
+                    <td style={{ padding: "6px 10px" }}>{fmtN(totalAmount)}</td>
+                    <td style={{ padding: "6px 10px" }}>{fmtN(principal)}</td>
+                    <td style={{ padding: "6px 10px" }}>{fmtN(totalProfit)}</td>
+                    <td style={{ padding: "6px 10px" }}>—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
 
         {/* ── Footer ── */}
         <div className="footer">

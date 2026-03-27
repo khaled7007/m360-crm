@@ -67,6 +67,9 @@ const initialFormData = {
   appraisal_1: 0,
   appraisal_2: 0,
   financing_amount: 0,
+  murabaha_rate: 0,
+  tenor_months: 0,
+  repayment_mechanism: "",
 };
 
 type FormData = typeof initialFormData;
@@ -146,7 +149,7 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
   const [loaded, setLoaded] = useState(false);
 
   const { data: existing, isLoading } = useApiGet<Record<string, unknown>>(`/credit-assessments/${id}`);
-  const { data: allApps } = useApiList<{ organization_id: string; status: string }>("/applications", { limit: 500 });
+  const { data: allApps } = useApiList<{ id: string; organization_id: string; status: string; requested_amount: number; requested_tenor_months: number; tenor_months: number }>("/applications", { limit: 500 });
   const { data: allOrgs } = useApiList<Organization>("/organizations", { limit: 200 });
   const sentOrgIds = new Set(
     allApps.filter((a) => a.status === "credit_assessment").map((a) => a.organization_id)
@@ -155,8 +158,20 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
   const { mutate: update, isSubmitting } = useApiMutation<FormData>(`/credit-assessments/${id}`, "PUT");
   const { mutate: runScore } = useApiMutation<Record<string, never>>(`/credit-assessments/${id}/score`, "POST");
 
+  // Find linked application by organization_id
+  const linkedApp = allApps.find(
+    (a) => existing && a.organization_id === (existing.organization_id as string) && a.status === "credit_assessment"
+  ) || allApps.find(
+    (a) => existing && a.organization_id === (existing.organization_id as string)
+  );
+
   useEffect(() => {
     if (existing && !loaded) {
+      const linkedTenor = linkedApp
+        ? (linkedApp.requested_tenor_months || linkedApp.tenor_months || 0)
+        : 0;
+      const linkedAmount = linkedApp ? linkedApp.requested_amount || 0 : 0;
+
       setForm({
         organization_id: (existing.organization_id as string) || "",
         project_name: (existing.project_name as string) || "",
@@ -198,11 +213,14 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
         property_usage: (existing.property_usage as string) || "",
         appraisal_1: Number(existing.appraisal_1) || 0,
         appraisal_2: Number(existing.appraisal_2) || 0,
-        financing_amount: Number(existing.financing_amount) || 0,
+        financing_amount: Number(existing.financing_amount) || linkedAmount,
+        murabaha_rate: Number(existing.murabaha_rate) || 0,
+        tenor_months: Number(existing.tenor_months) || linkedTenor,
+        repayment_mechanism: (existing.repayment_mechanism as string) || "monthly",
       });
       setLoaded(true);
     }
-  }, [existing, loaded]);
+  }, [existing, loaded, linkedApp]);
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -382,6 +400,81 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
                 <ComputedRatio label={t("computedRatios.appraisal_difference")} value={ratios.appraisalDiff} />
                 <ComputedRatio label={t("computedRatios.ltv_ratio")} value={ratios.ltv} />
               </div>
+            </div>
+
+            {/* ── شروط التمويل ── */}
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-sm font-semibold text-teal-700">شروط التمويل (المرابحة)</h4>
+              {linkedApp && (
+                <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-teal-800 space-y-1">
+                  <p className="font-medium">بيانات من الطلب المرتبط:</p>
+                  <p>مبلغ التمويل المطلوب: <strong>{linkedApp.requested_amount?.toLocaleString()} ر.س</strong></p>
+                  <p>مدة التمويل: <strong>{linkedApp.requested_tenor_months || linkedApp.tenor_months} شهراً</strong></p>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">مدة التمويل (أشهر)</label>
+                  <input
+                    type="number"
+                    value={form.tenor_months || ""}
+                    onChange={(e) => set("tenor_months", parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    placeholder="36"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">نسبة المرابحة السنوية (%)</label>
+                  <input
+                    type="number"
+                    value={form.murabaha_rate || ""}
+                    onChange={(e) => set("murabaha_rate", parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    placeholder="4.5"
+                    step="0.1"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">آلية السداد</label>
+                  <select
+                    value={form.repayment_mechanism}
+                    onChange={(e) => set("repayment_mechanism", e.target.value)}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  >
+                    <option value="monthly">شهري</option>
+                    <option value="quarterly">ربع سنوي</option>
+                    <option value="semi_annual">نصف سنوي</option>
+                    <option value="annual">سنوي</option>
+                    <option value="balloon">دفعة واحدة نهائية</option>
+                  </select>
+                </div>
+              </div>
+              {/* معاينة القسط */}
+              {form.financing_amount > 0 && form.murabaha_rate > 0 && form.tenor_months > 0 && (() => {
+                const periodsPerYear: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1, balloon: 1 };
+                const ppy = periodsPerYear[form.repayment_mechanism] || 12;
+                const numPayments = form.repayment_mechanism === "balloon" ? 1 : Math.round(form.tenor_months / (12 / ppy));
+                const totalProfit = form.financing_amount * (form.murabaha_rate / 100) * (form.tenor_months / 12);
+                const installment = (form.financing_amount + totalProfit) / numPayments;
+                return (
+                  <div className="bg-stone-50 rounded-lg p-4 grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-stone-500">إجمالي الربح</p>
+                      <p className="text-sm font-bold text-teal-700 mt-1">{totalProfit.toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-stone-500">إجمالي التمويل</p>
+                      <p className="text-sm font-bold text-stone-800 mt-1">{(form.financing_amount + totalProfit).toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-stone-500">قيمة القسط</p>
+                      <p className="text-sm font-bold text-indigo-700 mt-1">{installment.toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );

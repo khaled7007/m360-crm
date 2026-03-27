@@ -45,6 +45,9 @@ interface Assessment {
   status: string;
   created_at: string;
   updated_at: string;
+  murabaha_rate?: number;
+  tenor_months?: number;
+  repayment_mechanism?: string;
   score?: Score | null;
   business_activity: string;
   entity_type: string;
@@ -84,7 +87,7 @@ interface Assessment {
   property_usage: string;
   appraisal_1: number;
   appraisal_2: number;
-  financing_amount: number;
+  financing_amount?: number;
   application_id?: string;
 }
 
@@ -118,6 +121,7 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
 
   const [sendOpen, setSendOpen] = useState(false);
   const [quorum, setQuorum] = useState(3);
+  const [showFullSchedule, setShowFullSchedule] = useState(false);
 
   const { mutate: runScore, isSubmitting: isScoring } = useApiMutation<Record<string, never>>(
     `/credit-assessments/${id}/score`,
@@ -396,6 +400,101 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
           </p>
         </div>
       )}
+
+      {/* ── Financing Terms ── */}
+      {assessment.financing_amount && assessment.financing_amount > 0 && assessment.murabaha_rate && assessment.murabaha_rate > 0 && assessment.tenor_months && assessment.tenor_months > 0 && (() => {
+        const principal = assessment.financing_amount!;
+        const rate = assessment.murabaha_rate!;
+        const tenor = assessment.tenor_months!;
+        const mech = assessment.repayment_mechanism || "monthly";
+        const mechLabels: Record<string, string> = { monthly: "شهري", quarterly: "ربع سنوي", semi_annual: "نصف سنوي", annual: "سنوي", balloon: "دفعة واحدة" };
+        const periodsPerYear: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1, balloon: 1 };
+        const ppy = periodsPerYear[mech] || 12;
+        const numPayments = mech === "balloon" ? 1 : Math.round(tenor / (12 / ppy));
+        const totalProfit = principal * (rate / 100) * (tenor / 12);
+        const totalAmount = principal + totalProfit;
+        const installment = totalAmount / numPayments;
+        const principalPerPayment = principal / numPayments;
+        const profitPerPayment = totalProfit / numPayments;
+        const fmt = (n: number) => n.toLocaleString("ar-SA", { maximumFractionDigits: 0 });
+
+        // Build schedule
+        const schedule = Array.from({ length: numPayments }, (_, i) => {
+          const paymentNum = i + 1;
+          const remaining = principal - principalPerPayment * i;
+          return {
+            num: paymentNum,
+            installment,
+            principal: principalPerPayment,
+            profit: profitPerPayment,
+            balance: Math.max(remaining - principalPerPayment, 0),
+          };
+        });
+        const displaySchedule = showFullSchedule ? schedule : schedule.slice(0, 6);
+
+        return (
+          <div className="bg-white rounded-lg border border-stone-200 p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-stone-900">شروط التمويل وجدول السداد</h3>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                { label: "مبلغ التمويل", value: `${fmt(principal)} ر.س`, color: "text-stone-800" },
+                { label: "مدة التمويل", value: `${tenor} شهراً`, color: "text-stone-800" },
+                { label: "نسبة المرابحة", value: `${rate}% سنوياً`, color: "text-teal-700" },
+                { label: "آلية السداد", value: mechLabels[mech] || mech, color: "text-stone-800" },
+                { label: "قيمة القسط", value: `${fmt(installment)} ر.س`, color: "text-indigo-700" },
+              ].map((item) => (
+                <div key={item.label} className="bg-stone-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-stone-500 mb-1">{item.label}</p>
+                  <p className={`text-sm font-bold ${item.color}`}>{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Totals bar */}
+            <div className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm">
+              <span className="text-teal-700">إجمالي الربح: <strong>{fmt(totalProfit)} ر.س</strong></span>
+              <span className="text-stone-600">إجمالي التمويل: <strong>{fmt(totalAmount)} ر.س</strong></span>
+              <span className="text-stone-600">عدد الأقساط: <strong>{numPayments}</strong></span>
+            </div>
+
+            {/* Schedule table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-stone-100 text-stone-600">
+                    <th className="px-3 py-2 text-right font-medium">#</th>
+                    <th className="px-3 py-2 text-right font-medium">قيمة القسط</th>
+                    <th className="px-3 py-2 text-right font-medium">الأصل</th>
+                    <th className="px-3 py-2 text-right font-medium">الربح</th>
+                    <th className="px-3 py-2 text-right font-medium">الرصيد المتبقي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displaySchedule.map((row) => (
+                    <tr key={row.num} className={row.num % 2 === 0 ? "bg-stone-50" : "bg-white"}>
+                      <td className="px-3 py-2 font-medium text-stone-500">{row.num}</td>
+                      <td className="px-3 py-2 font-semibold text-indigo-700">{fmt(row.installment)}</td>
+                      <td className="px-3 py-2">{fmt(row.principal)}</td>
+                      <td className="px-3 py-2 text-teal-700">{fmt(row.profit)}</td>
+                      <td className="px-3 py-2 font-medium">{fmt(row.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {schedule.length > 6 && (
+              <button
+                onClick={() => setShowFullSchedule(!showFullSchedule)}
+                className="text-sm text-teal-600 hover:underline"
+              >
+                {showFullSchedule ? "عرض أقل" : `عرض جميع الأقساط (${schedule.length})`}
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Org Financial Statements */}
       <div className="bg-white rounded-lg border border-stone-200 p-6">
