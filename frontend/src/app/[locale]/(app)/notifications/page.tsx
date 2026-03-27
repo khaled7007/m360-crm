@@ -11,17 +11,28 @@ import { toast } from "sonner";
 interface Notification {
   id: string;
   title: string;
-  message: string;
-  type: "info" | "warning" | "action_required";
+  body?: string;
+  message?: string;
+  type: string;
   is_read: boolean;
   created_at: string;
 }
 
-const typeIcons: Record<Notification["type"], { icon: React.ReactNode; color: string }> = {
-  info: { icon: <Info size={16} />, color: "text-teal-500" },
-  warning: { icon: <AlertTriangle size={16} />, color: "text-yellow-500" },
-  action_required: { icon: <Zap size={16} />, color: "text-red-500" },
+const typeIcons: Record<string, { icon: React.ReactNode; color: string }> = {
+  info:                  { icon: <Info size={16} />,          color: "text-teal-500" },
+  warning:               { icon: <AlertTriangle size={16} />, color: "text-yellow-500" },
+  action_required:       { icon: <Zap size={16} />,           color: "text-red-500" },
+  application_submitted: { icon: <Info size={16} />,          color: "text-teal-500" },
+  application_approved:  { icon: <Info size={16} />,          color: "text-green-600" },
+  application_rejected:  { icon: <AlertTriangle size={16} />, color: "text-red-500" },
+  committee_meeting:     { icon: <Zap size={16} />,           color: "text-purple-500" },
+  overdue_alert:         { icon: <AlertTriangle size={16} />, color: "text-orange-500" },
+  new_lead:              { icon: <Info size={16} />,          color: "text-teal-500" },
+  facility_disbursed:    { icon: <Info size={16} />,          color: "text-green-600" },
+  org_updated:           { icon: <Info size={16} />,          color: "text-stone-500" },
 };
+
+const fallbackTypeIcon = { icon: <Bell size={16} />, color: "text-stone-400" };
 
 const formatRelativeTime = (iso: string) => {
   const diff = Date.now() - new Date(iso).getTime();
@@ -39,10 +50,18 @@ export default function NotificationsPage() {
   const tc = useTranslations("common");
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const typeLabels: Record<Notification["type"], string> = {
-    info: t("typeLabels.info"),
-    warning: t("typeLabels.warning"),
-    action_required: t("typeLabels.action_required"),
+  const typeLabels: Record<string, string> = {
+    info:                  t("typeLabels.info"),
+    warning:               t("typeLabels.warning"),
+    action_required:       t("typeLabels.action_required"),
+    application_submitted: t("typeLabels.application_submitted"),
+    application_approved:  t("typeLabels.application_approved"),
+    application_rejected:  t("typeLabels.application_rejected"),
+    committee_meeting:     t("typeLabels.committee_meeting"),
+    overdue_alert:         t("typeLabels.overdue_alert"),
+    new_lead:              t("typeLabels.new_lead"),
+    facility_disbursed:    t("typeLabels.facility_disbursed"),
+    org_updated:           t("typeLabels.org_updated"),
   };
 
   const { data: notifications, isLoading, error: notificationsError, refetch } =
@@ -141,7 +160,7 @@ export default function NotificationsPage() {
       ) : (
         <div className="bg-white rounded-lg border border-stone-200 divide-y divide-stone-200 overflow-hidden">
           {displayed.map((notification) => {
-            const config = typeIcons[notification.type];
+            const config = typeIcons[notification.type] ?? fallbackTypeIcon;
             return (
               <div
                 key={notification.id}
@@ -168,7 +187,7 @@ export default function NotificationsPage() {
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className={`flex items-center gap-1 text-xs font-medium ${config.color}`}>
                           {config.icon}
-                          <span className="capitalize">{typeLabels[notification.type]}</span>
+                          <span className="capitalize">{typeLabels[notification.type] ?? notification.type.replace(/_/g, " ")}</span>
                         </span>
                         <span className="text-xs text-stone-400">
                           {formatRelativeTime(notification.created_at)}
@@ -182,7 +201,7 @@ export default function NotificationsPage() {
                         {notification.title}
                       </p>
                       <p className="text-sm text-stone-500 mt-0.5">
-                        {notification.message}
+                        {notification.body ?? notification.message}
                       </p>
                     </div>
 

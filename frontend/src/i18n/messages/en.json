@@ -475,7 +475,15 @@
     "typeLabels": {
       "info": "info",
       "warning": "warning",
-      "action_required": "action required"
+      "action_required": "action required",
+      "application_submitted": "application submitted",
+      "application_approved": "application approved",
+      "application_rejected": "application rejected",
+      "committee_meeting": "committee meeting",
+      "overdue_alert": "overdue alert",
+      "new_lead": "new lead",
+      "facility_disbursed": "facility disbursed",
+      "org_updated": "organization updated"
     }
   },
   "users": {

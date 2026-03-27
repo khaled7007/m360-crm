@@ -475,7 +475,15 @@
     "typeLabels": {
       "info": "معلومات",
       "warning": "تحذير",
-      "action_required": "إجراء مطلوب"
+      "action_required": "إجراء مطلوب",
+      "application_submitted": "طلب مقدّم",
+      "application_approved": "طلب معتمد",
+      "application_rejected": "طلب مرفوض",
+      "committee_meeting": "اجتماع اللجنة",
+      "overdue_alert": "تنبيه تأخر",
+      "new_lead": "عميل جديد",
+      "facility_disbursed": "صرف تمويل",
+      "org_updated": "تحديث منظمة"
     }
   },
   "users": {
