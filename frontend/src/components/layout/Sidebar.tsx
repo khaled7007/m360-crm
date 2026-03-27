@@ -26,10 +26,13 @@ import {
   LogOut,
   Menu,
   X,
+  KeyRound,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 interface NavItem {
   key: string;
@@ -60,10 +63,33 @@ export function Sidebar() {
   const locale = useLocale();
   const t = useTranslations("common");
   const tu = useTranslations("users");
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const pwdRef = useRef(false);
+
+  const handleChangePassword = async () => {
+    if (!pwdForm.next || pwdForm.next.length < 6) { toast.error("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"); return; }
+    if (pwdForm.next !== pwdForm.confirm) { toast.error("كلمة المرور الجديدة وتأكيدها غير متطابقتين"); return; }
+    if (pwdRef.current) return;
+    pwdRef.current = true;
+    setPwdSaving(true);
+    try {
+      await api("/auth/change-password", { method: "POST", body: { current_password: pwdForm.current, new_password: pwdForm.next }, token: token ?? "" });
+      toast.success("تم تغيير كلمة المرور بنجاح");
+      setShowPwdModal(false);
+      setPwdForm({ current: "", next: "", confirm: "" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "كلمة المرور الحالية غير صحيحة");
+    } finally {
+      setPwdSaving(false);
+      pwdRef.current = false;
+    }
+  };
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -144,6 +170,14 @@ export function Sidebar() {
           <LanguageSwitcher collapsed={collapsed && !mobileOpen} />
         </div>
         <button
+          onClick={() => setShowPwdModal(true)}
+          className="flex items-center gap-2 text-sm text-stone-400 hover:text-white w-full px-1 mb-1"
+          title="تغيير كلمة المرور"
+        >
+          <KeyRound size={16} />
+          {(!collapsed || mobileOpen) && <span>تغيير كلمة المرور</span>}
+        </button>
+        <button
           onClick={logout}
           className="flex items-center gap-2 text-sm text-stone-400 hover:text-white w-full px-1"
           title={t("logout")}
@@ -194,6 +228,40 @@ export function Sidebar() {
       >
         {sidebarContent}
       </aside>
+
+      {/* Change Password Modal */}
+      {showPwdModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+            <h2 className="text-lg font-bold text-stone-900 mb-4">تغيير كلمة المرور</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">كلمة المرور الحالية</label>
+                <input type="password" value={pwdForm.current} onChange={(e) => setPwdForm((p) => ({ ...p, current: e.target.value }))}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">كلمة المرور الجديدة</label>
+                <input type="password" value={pwdForm.next} onChange={(e) => setPwdForm((p) => ({ ...p, next: e.target.value }))}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">تأكيد كلمة المرور</label>
+                <input type="password" value={pwdForm.confirm} onChange={(e) => setPwdForm((p) => ({ ...p, confirm: e.target.value }))}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => { setShowPwdModal(false); setPwdForm({ current: "", next: "", confirm: "" }); }}
+                  className="flex-1 px-4 py-2 border border-stone-300 rounded-lg text-stone-700 hover:bg-stone-50">إلغاء</button>
+                <button type="button" onClick={handleChangePassword} disabled={pwdSaving}
+                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50">
+                  {pwdSaving ? "جاري الحفظ..." : "حفظ"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

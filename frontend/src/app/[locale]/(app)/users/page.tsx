@@ -8,8 +8,10 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
+import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { RoleGuard } from "@/components/ui/RoleGuard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,16 +110,54 @@ export default function UsersPage() {
     { value: "care_manager", label: t("roleLabels.care_manager") },
   ];
 
+  const { user: currentUser, token } = useAuth();
+  const isSuperAdmin = currentUser?.role === "super_admin";
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState<AppUser | null>(null);
+  const [editForm, setEditForm] = useState<Partial<AppUser>>({});
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<CreateUserInput>(DEFAULT_FORM);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { data: users, pagination, isLoading, error: usersError, refetch } = useApiList<AppUser>("/auth/users", { ...page, search: searchQuery || undefined });
   const { mutate: createUser, isSubmitting } = useApiMutation<CreateUserInput, AppUser>(
     "/auth/users",
     "POST"
   );
+
+  const handleEdit = (u: AppUser) => {
+    setEditUser(u);
+    setEditForm({ name_en: u.name_en, name_ar: u.name_ar, email: u.email, role: u.role, is_active: u.is_active });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editUser || !token) return;
+    setIsSaving(true);
+    try {
+      await api(`/auth/users/${editUser.id}`, { method: "PUT", body: editForm, token });
+      toast.success("تم التحديث بنجاح");
+      setEditUser(null);
+      refetch();
+    } catch {
+      toast.error("حدث خطأ أثناء التحديث");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (u: AppUser) => {
+    if (!confirm(`هل تريد حذف المستخدم "${u.name_ar}"؟`)) return;
+    if (!token) return;
+    try {
+      await api(`/auth/users/${u.id}`, { method: "DELETE", token });
+      toast.success("تم حذف المستخدم");
+      refetch();
+    } catch {
+      toast.error("حدث خطأ أثناء الحذف");
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -202,6 +242,20 @@ export default function UsersPage() {
         </span>
       ),
     },
+    ...(isSuperAdmin ? [{
+      key: "actions" as string,
+      header: "",
+      render: (item: AppUser) => (
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => handleEdit(item)} className="p-1.5 rounded hover:bg-stone-100 text-stone-500 hover:text-teal-600 transition-colors" title="تعديل">
+            <Pencil size={15} />
+          </button>
+          <button onClick={() => handleDelete(item)} className="p-1.5 rounded hover:bg-red-50 text-stone-500 hover:text-red-600 transition-colors" title="حذف">
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ),
+    }] : []),
   ];
 
   return (
@@ -375,6 +429,52 @@ export default function UsersPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit User Modal */}
+      <Modal open={!!editUser} onClose={() => setEditUser(null)} title="تعديل المستخدم" size="md">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">الاسم بالإنجليزية</label>
+              <input type="text" value={editForm.name_en ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, name_en: e.target.value }))}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">الاسم بالعربية</label>
+              <input type="text" dir="rtl" value={editForm.name_ar ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, name_ar: e.target.value }))}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-right" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">البريد الإلكتروني</label>
+            <input type="email" value={editForm.email ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">الدور الوظيفي</label>
+            <select value={editForm.role ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value as UserRole }))}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-stone-700">الحساب نشط</label>
+            <button type="button" onClick={() => setEditForm((p) => ({ ...p, is_active: !p.is_active }))}
+              className={`relative w-11 h-6 rounded-full transition-colors ${editForm.is_active ? "bg-teal-600" : "bg-stone-300"}`}>
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${editForm.is_active ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0.5 rtl:-translate-x-0.5"}`} />
+            </button>
+          </div>
+          <div className="flex gap-3 pt-4 border-t border-stone-200">
+            <button type="button" onClick={() => setEditUser(null)} className="flex-1 px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50">
+              {tc("cancel")}
+            </button>
+            <button type="button" onClick={handleSaveEdit} disabled={isSaving}
+              className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50">
+              {isSaving ? tc("saving") : tc("save")}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
     </RoleGuard>

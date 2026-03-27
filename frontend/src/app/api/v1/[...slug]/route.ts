@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v8`;
+const INIT_KEY = `${PREFIX}:initialized:v9`;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -74,6 +74,31 @@ function requireAuth(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";
   return auth.startsWith("Bearer ") && auth.length > 7;
 }
+function tokenForUser(userId: string) { return `mock-jwt-${userId}`; }
+function refreshForUser(userId: string) { return `mock-refresh-${userId}`; }
+function userIdFromToken(req: NextRequest): string | null {
+  const auth = req.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (token.startsWith("mock-jwt-")) return token.slice(9);
+  return null;
+}
+async function getUserById(id: string): Promise<AnyRecord | null> {
+  const users = await getCol("users");
+  return users.find((u) => u.id === id) ?? null;
+}
+async function getUserPassword(userId: string): Promise<string> {
+  const stored = await redis.get<string>(`${PREFIX}:pwd:${userId}`);
+  return stored ?? ADMIN_PASSWORD;
+}
+async function notifyRoles(roles: string[], title: string, body: string, type: string, entityType: string, entityId: string) {
+  const users = await getCol("users");
+  const notifications = await getCol("notifications");
+  const targets = users.filter((u) => roles.includes(u.role as string));
+  for (const u of targets) {
+    notifications.push({ id: uid(), user_id: u.id, title, body, type, entity_type: entityType, entity_id: entityId, is_read: false, created_at: now() });
+  }
+  await setCol("notifications", notifications);
+}
 
 const RESOURCE_KEYS: Record<string, string> = {
   leads: "leads", organizations: "organizations", contacts: "contacts",
@@ -98,6 +123,11 @@ export async function GET(
   // AUTH
   if (r === "auth" && id === "me") {
     if (!requireAuth(req)) return err("Unauthorized", 401);
+    const uid2 = userIdFromToken(req);
+    if (uid2) {
+      const u = await getUserById(uid2);
+      if (u) return ok(u);
+    }
     return ok(ADMIN_USER);
   }
 
@@ -247,19 +277,40 @@ export async function POST(
   // AUTH LOGIN
   if (r === "auth" && id === "login") {
     const body = await req.json().catch(() => ({})) as { email?: string; password?: string };
-    if (body.email === ADMIN_EMAIL && body.password === ADMIN_PASSWORD) {
-      return ok({ token: MOCK_TOKEN, refresh_token: MOCK_REFRESH, user: ADMIN_USER });
-    }
     const users = await getCol("users");
-    const demoUser = users.find((u) => u.email === body.email);
-    if (demoUser && body.password === ADMIN_PASSWORD) {
-      return ok({ token: MOCK_TOKEN, refresh_token: MOCK_REFRESH, user: demoUser });
+    const foundUser = users.find((u) => u.email === body.email);
+    if (foundUser) {
+      const correctPwd = await getUserPassword(foundUser.id as string);
+      if (body.password === correctPwd) {
+        const fid = foundUser.id as string;
+        return ok({ token: tokenForUser(fid), refresh_token: refreshForUser(fid), user: foundUser });
+      }
     }
     return err("بيانات الدخول غير صحيحة", 401);
   }
 
   if (r === "auth" && id === "refresh") {
+    const body = await req.json().catch(() => ({})) as { refresh_token?: string };
+    const rt = body.refresh_token ?? "";
+    if (rt.startsWith("mock-refresh-")) {
+      const ruid = rt.slice(13);
+      const u = await getUserById(ruid);
+      if (u) return ok({ token: tokenForUser(ruid), refresh_token: refreshForUser(ruid), user: u });
+    }
     return ok({ token: MOCK_TOKEN, refresh_token: MOCK_REFRESH, user: ADMIN_USER });
+  }
+
+  // CHANGE PASSWORD (before auth check — needs its own check)
+  if (r === "auth" && id === "change-password") {
+    if (!requireAuth(req)) return err("Unauthorized", 401);
+    const body = await req.json().catch(() => ({})) as { current_password?: string; new_password?: string };
+    const userId = userIdFromToken(req);
+    if (!userId) return err("Unauthorized", 401);
+    const currentPwd = await getUserPassword(userId);
+    if (body.current_password !== currentPwd) return err("كلمة المرور الحالية غير صحيحة", 400);
+    if (!body.new_password || body.new_password.length < 6) return err("كلمة المرور الجديدة قصيرة جداً", 400);
+    await redis.set(`${PREFIX}:pwd:${userId}`, body.new_password);
+    return ok({ message: "تم تغيير كلمة المرور بنجاح" });
   }
 
   if (!requireAuth(req)) return err("Unauthorized", 401);
@@ -420,6 +471,13 @@ export async function POST(
     a.status = "scored";
     a.updated_at = now();
     await setCol("credit_assessments", assessments);
+    // Notify sales managers that credit assessment is complete
+    await notifyRoles(
+      ["sales_manager", "sales_officer"],
+      "اكتمل التقييم الائتماني",
+      `تم الانتهاء من التقييم الائتماني وتصنيفه ${grade}`,
+      "credit_assessment_scored", "credit_assessment", id
+    );
     return ok(score, 201);
   }
 
@@ -454,6 +512,15 @@ export async function POST(
   const body = await req.json().catch(() => ({})) as AnyRecord;
   const created: AnyRecord = { id: uid(), ...body, created_at: now(), updated_at: now() };
 
+  if (r === "credit-assessments") {
+    // Notify credit team that a new assessment request has arrived
+    await notifyRoles(
+      ["credit_manager", "credit_officer"],
+      "طلب تقييم ائتماني جديد",
+      "وصل طلب تقييم ائتماني جديد يحتاج مراجعتك",
+      "credit_assessment_created", "credit_assessment", created.id as string
+    );
+  }
   if (r === "applications") {
     created.reference_number = `APP-${new Date().getFullYear()}-${String(collection.length + 1).padStart(3, "0")}`;
     if (!created.status) created.status = "draft";

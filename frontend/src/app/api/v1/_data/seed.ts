@@ -1,7 +1,7 @@
 // ─── Seed data for the mock API (used when BACKEND_URL is not set) ───────────
 
 export const ADMIN_EMAIL = "ceo@tharaco.sa";
-export const ADMIN_PASSWORD = "admin123!";
+export const ADMIN_PASSWORD = "Thara@2026";
 export const MOCK_TOKEN = "mock-jwt-token-clientscycle";
 export const MOCK_REFRESH = "mock-refresh-token-clientscycle";
 
