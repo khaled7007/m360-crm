@@ -153,6 +153,7 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
   );
   const orgs = allOrgs.filter((o) => sentOrgIds.has(o.id));
   const { mutate: update, isSubmitting } = useApiMutation<FormData>(`/credit-assessments/${id}`, "PUT");
+  const { mutate: runScore } = useApiMutation<Record<string, never>>(`/credit-assessments/${id}/score`, "POST");
 
   useEffect(() => {
     if (existing && !loaded) {
@@ -246,7 +247,13 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
     }
     try {
       await update(form);
-      toast.success(t("updateSuccess"));
+      // إعادة حساب التقييم تلقائياً إذا كان هناك تقييم سابق
+      if (existing && (existing as Record<string, unknown>).score) {
+        await runScore({} as Record<string, never>);
+        toast.success("تم حفظ التعديلات وإعادة حساب التقييم");
+      } else {
+        toast.success(t("updateSuccess"));
+      }
       router.push(`/${locale}/credit-assessment/${id}`);
     } catch {
       toast.error(t("updateError"));
