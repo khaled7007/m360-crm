@@ -130,11 +130,16 @@
     "notes": "ملاحظات",
     "sources": {
       "website": "الموقع الإلكتروني",
+      "social_media": "منصات التواصل الاجتماعي",
       "referral": "إحالة",
       "cold_call": "اتصال مباشر",
       "event": "فعالية",
       "partner": "شريك"
     },
+    "convertToOrg": "تحويل إلى طالب تمويل",
+    "convertSuccess": "تم تحويل العميل المحتمل إلى طالب تمويل",
+    "convertError": "فشل تحويل العميل المحتمل",
+    "alreadyConverted": "تم تحويل هذا العميل مسبقاً",
     "statuses": {
       "new": "جديد",
       "contacted": "تم التواصل",

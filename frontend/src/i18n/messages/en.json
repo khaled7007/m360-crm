@@ -130,6 +130,7 @@
     "notes": "Notes",
     "sources": {
       "website": "Website",
+      "social_media": "Social Media",
       "referral": "Referral",
       "cold_call": "Cold Call",
       "event": "Event",
@@ -152,7 +153,11 @@
     "phoneRequired": "Phone is required",
     "loadError": "Failed to load leads. Please try again.",
     "retry": "Retry",
-    "noLeads": "No leads found."
+    "noLeads": "No leads found.",
+    "convertToOrg": "Convert to Financing Applicant",
+    "convertSuccess": "Lead converted to financing applicant",
+    "convertError": "Failed to convert lead",
+    "alreadyConverted": "This lead has already been converted"
   },
   "organizations": {
     "title": "Financing Applicants",
