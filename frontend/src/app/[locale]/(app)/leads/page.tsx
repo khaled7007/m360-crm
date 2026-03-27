@@ -377,14 +377,8 @@ export default function LeadsPage() {
         </form>
       </Modal>
 
-      {/* Convert Confirmation Modal */}
-      <Modal
-        open={!!convertLead}
-        onClose={() => setConvertLead(null)}
-        title={t("convertToOrg")}
-        size="sm"
-      >
-        <Modal open={!!deleteLead} onClose={() => setDeleteLead(null)} title="نقل إلى الأرشيف" size="sm">
+      {/* Archive Modal */}
+      <Modal open={!!deleteLead} onClose={() => setDeleteLead(null)} title="نقل إلى الأرشيف" size="sm">
         {deleteLead && (
           <div className="space-y-4">
             <p className="text-sm text-stone-600">سيتم نقل <span className="font-semibold">{deleteLead.company_name || deleteLead.contact_name}</span> إلى الأرشيف.</p>
@@ -397,7 +391,15 @@ export default function LeadsPage() {
           </div>
         )}
       </Modal>
-      {convertLead && (
+
+      {/* Convert Confirmation Modal */}
+      <Modal
+        open={!!convertLead}
+        onClose={() => setConvertLead(null)}
+        title={t("convertToOrg")}
+        size="sm"
+      >
+        {convertLead && (
           <div className="space-y-4">
             <p className="text-sm text-stone-600">
               سيتم إنشاء طالب تمويل جديد باسم <span className="font-semibold text-stone-800">{convertLead.company_name || convertLead.contact_name}</span> وتغيير حالة العميل المحتمل إلى &quot;محوّل&quot;.
