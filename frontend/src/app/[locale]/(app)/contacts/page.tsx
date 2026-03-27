@@ -9,6 +9,9 @@ import { useApiList, useApiMutation } from "@/lib/use-api";
 import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth-context";
+
+const CREATE_ROLES = ["super_admin","admin","sales_manager","operations_manager","care_manager","credit_manager","credit_officer"];
 
 interface Organization {
   id: string;
@@ -43,6 +46,8 @@ const emptyForm: ContactForm = {};
 export default function ContactsPage() {
   const t = useTranslations("contacts");
   const tc = useTranslations("common");
+  const { user } = useAuth();
+  const canCreate = CREATE_ROLES.includes(user?.role || "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,25 +153,31 @@ export default function ContactsPage() {
       header: "",
       render: (item) => (
         <div className="flex items-center gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); setConvertItem(item); }}
-            className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded transition"
-            title="تحويل لطالب تمويل"
-          >
-            <Building2 size={14} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); openEdit(item); }}
-            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
-          >
-            <Trash2 size={14} />
-          </button>
+          {canCreate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setConvertItem(item); }}
+              className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded transition"
+              title="تحويل لطالب تمويل"
+            >
+              <Building2 size={14} />
+            </button>
+          )}
+          {canCreate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+              className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {canCreate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -248,7 +259,7 @@ export default function ContactsPage() {
       <PageHeader
         title={t("title")}
         description={t("subtitle")}
-        action={
+        action={canCreate ? (
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
@@ -256,7 +267,7 @@ export default function ContactsPage() {
             <Plus size={20} />
             {t("newContact")}
           </button>
-        }
+        ) : undefined}
       />
 
       {isLoading && (

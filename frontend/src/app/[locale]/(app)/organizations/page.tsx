@@ -12,6 +12,9 @@ import { FileUpload } from "@/components/ui/FileUpload";
 import { DocumentList } from "@/components/ui/DocumentList";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth-context";
+
+const CREATE_ROLES = ["super_admin","admin","sales_manager","operations_manager","care_manager","credit_manager","credit_officer"];
 import { OrgImportModal } from "@/components/organizations/OrgImportModal";
 
 // ---------------------------------------------------------------------------
@@ -119,6 +122,8 @@ interface CreateOrganizationInput {
 export default function OrganizationsPage() {
   const t = useTranslations("organizations");
   const tc = useTranslations("common");
+  const { user } = useAuth();
+  const canCreate = CREATE_ROLES.includes(user?.role || "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
@@ -344,14 +349,18 @@ export default function OrganizationsPage() {
       header: "",
       render: (item) => (
         <div className="flex items-center gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); openEdit(item as Organization); }}
-            className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
-          ><Pencil size={14} /></button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setDeleteOrg(item as Organization); }}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
-          ><Trash2 size={14} /></button>
+          {canCreate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(item as Organization); }}
+              className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
+            ><Pencil size={14} /></button>
+          )}
+          {canCreate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setDeleteOrg(item as Organization); }}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+            ><Trash2 size={14} /></button>
+          )}
         </div>
       ),
     },
@@ -369,20 +378,24 @@ export default function OrganizationsPage() {
           description={t("subtitle")}
         />
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsImportOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition"
-          >
-            <FileUp size={18} />
-            استيراد Excel
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-          >
-            <Plus size={20} />
-            {t("newOrg")}
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition"
+            >
+              <FileUp size={18} />
+              استيراد Excel
+            </button>
+          )}
+          {canCreate && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+            >
+              <Plus size={20} />
+              {t("newOrg")}
+            </button>
+          )}
         </div>
       </div>
 

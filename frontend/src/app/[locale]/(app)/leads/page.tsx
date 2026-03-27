@@ -10,6 +10,9 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth-context";
+
+const CREATE_ROLES = ["super_admin","admin","sales_manager","operations_manager","care_manager","credit_manager","credit_officer"];
 
 interface Lead {
   id: string;
@@ -43,6 +46,8 @@ interface CreateLeadInput {
 export default function LeadsPage() {
   const t = useTranslations("leads");
   const tc = useTranslations("common");
+  const { user } = useAuth();
+  const canCreate = CREATE_ROLES.includes(user?.role || "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
@@ -163,13 +168,15 @@ export default function LeadsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <PageHeader title={t("title")} description={t("subtitle")} />
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-        >
-          <Plus size={20} />
-          {t("newLead")}
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+          >
+            <Plus size={20} />
+            {t("newLead")}
+          </button>
+        )}
       </div>
 
       {isLoadingLeads && (
