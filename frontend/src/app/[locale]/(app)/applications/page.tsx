@@ -16,6 +16,7 @@ import { StatusSettingsModal } from "@/components/ui/StatusSettingsModal";
 import { useStatusConfig } from "@/lib/status-config-context";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { notifySentToCredit, notifyStatusChange } from "@/lib/notify";
 
 const DOC_TYPES = [
   { key: "cr",                  label: "السجل التجاري" },
@@ -196,17 +197,20 @@ export default function ApplicationsPage() {
 
   const handleSendToCredit = async (item: Application) => {
     try {
-      const token = localStorage.getItem("m360_token") || "";
+      const tok = localStorage.getItem("m360_token") || "";
       await api("/credit-assessments", {
         method: "POST",
         body: { organization_id: item.organization_id, sent_from_application: true },
-        token,
+        token: tok,
       });
       await api(`/applications/${item.id}`, {
         method: "PUT",
         body: { status: "credit_assessment" },
-        token,
+        token: tok,
       });
+      const org = organizations.find((o) => o.id === item.organization_id);
+      const orgName = org?.name_ar || org?.name_en || item.organization_id;
+      await notifySentToCredit(tok, item.reference_number, orgName);
       toast.success("تم الإرسال للائتمان بنجاح");
       refetchApplications();
     } catch {
@@ -781,12 +785,13 @@ function ApplicationDetails({ application, onStatusChanged }: { application: App
     if (newStatus === application.status) return;
     setIsChangingStatus(true);
     try {
-      const token = localStorage.getItem("m360_token") || "";
+      const tok = localStorage.getItem("m360_token") || "";
       await api(`/applications/${application.id}`, {
         method: "PUT",
         body: { status: newStatus },
-        token,
+        token: tok,
       });
+      await notifyStatusChange(tok, application.reference_number, application.organization_id, newStatus);
       toast.success("تم تحديث الحالة");
       onStatusChanged();
     } catch {
