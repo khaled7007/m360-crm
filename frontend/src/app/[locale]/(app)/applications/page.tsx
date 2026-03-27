@@ -23,6 +23,7 @@ const DOC_TYPES = [
   { key: "simah_personal",      label: "إقرار سمة الشخصي" },
   { key: "simah_company",       label: "إقرار سمة المنشأة" },
   { key: "financial_statements",label: "القوائم المالية" },
+  { key: "other",               label: "ملفات أخرى" },
 ] as const;
 
 interface Organization {
@@ -93,7 +94,7 @@ export default function ApplicationsPage() {
   const [formData, setFormData] = useState<AppFormInput>({ ...emptyForm });
   const [orgSearch, setOrgSearch] = useState("");
   const [docFiles, setDocFiles] = useState<Record<string, File | null>>({
-    cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null,
+    cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null,
   });
   const [isUploadingDocs, setIsUploadingDocs] = useState(false);
 
@@ -173,7 +174,7 @@ export default function ApplicationsPage() {
       setIsModalOpen(false);
       setFormData({ ...emptyForm });
       setOrgSearch("");
-      setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null });
+      setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null });
       refetchApplications();
     } catch {
       toast.error(t("createError"));
@@ -398,7 +399,7 @@ export default function ApplicationsPage() {
         onClose={() => {
           setIsModalOpen(false);
           setOrgSearch("");
-          setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null });
+          setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null });
         }}
         title={t("newApp")}
         size="xl"
@@ -576,7 +577,7 @@ export default function ApplicationsPage() {
               onClick={() => {
                 setIsModalOpen(false);
                 setOrgSearch("");
-                setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null });
+                setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null });
               }}
               className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
