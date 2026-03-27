@@ -4,7 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { useApiGet, useApiMutation } from "@/lib/use-api";
+import { useApiGet, useApiList, useApiMutation } from "@/lib/use-api";
 import { toast } from "sonner";
 import { ArrowLeft, Play, Send, FileDown } from "lucide-react";
 import { useState } from "react";
@@ -117,6 +117,14 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
 
   const { data: assessment, isLoading, refetch } = useApiGet<Assessment>(
     `/credit-assessments/${id}`
+  );
+  const { data: allApps } = useApiList<{ id: string; organization_id: string; status: string }>(
+    "/applications", { limit: 500 }
+  );
+  const linkedApp = allApps.find(
+    (a) => assessment && a.organization_id === assessment.organization_id && a.status === "credit_assessment"
+  ) || allApps.find(
+    (a) => assessment && a.organization_id === assessment.organization_id
   );
 
   const [sendOpen, setSendOpen] = useState(false);
@@ -495,6 +503,18 @@ export default function CreditAssessmentDetailPage({ params }: { params: Promise
           </div>
         );
       })()}
+
+      {/* Application Documents */}
+      {linkedApp && (
+        <div className="bg-white rounded-lg border border-stone-200 p-6">
+          <h3 className="text-lg font-semibold mb-1">مستندات الطلب</h3>
+          <p className="text-sm text-stone-500 mb-4">المستندات المرفوعة عند تقديم الطلب (السجل التجاري، كشف الحساب، سمة...)</p>
+          <DocumentList
+            entityType="application"
+            entityId={linkedApp.id}
+          />
+        </div>
+      )}
 
       {/* Org Financial Statements */}
       <div className="bg-white rounded-lg border border-stone-200 p-6">

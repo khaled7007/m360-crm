@@ -10,11 +10,20 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { DocumentList } from "@/components/ui/DocumentList";
-import { Plus, Settings2, Pencil, BookOpen } from "lucide-react";
+import { Plus, Settings2, Pencil, BookOpen, Upload, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusSettingsModal } from "@/components/ui/StatusSettingsModal";
 import { useStatusConfig } from "@/lib/status-config-context";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+
+const DOC_TYPES = [
+  { key: "cr",                  label: "السجل التجاري" },
+  { key: "bank_statement",      label: "كشف الحساب البنكي" },
+  { key: "simah_personal",      label: "إقرار سمة الشخصي" },
+  { key: "simah_company",       label: "إقرار سمة المنشأة" },
+  { key: "financial_statements",label: "القوائم المالية" },
+] as const;
 
 interface Organization {
   id: string;
@@ -74,6 +83,7 @@ const emptyForm: AppFormInput = {
 export default function ApplicationsPage() {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
+  const { token } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusSettingsOpen, setIsStatusSettingsOpen] = useState(false);
@@ -82,6 +92,10 @@ export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<AppFormInput>({ ...emptyForm });
   const [orgSearch, setOrgSearch] = useState("");
+  const [docFiles, setDocFiles] = useState<Record<string, File | null>>({
+    cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null,
+  });
+  const [isUploadingDocs, setIsUploadingDocs] = useState(false);
 
   const [editItem, setEditItem] = useState<Application | null>(null);
   const [editForm, setEditForm] = useState<AppFormInput>({ ...emptyForm });
@@ -130,11 +144,36 @@ export default function ApplicationsPage() {
   const handleCreateApplication = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createApplication(formData);
+      const created = await createApplication(formData) as { id: string } | undefined;
+      const appId = (created as { id?: string } | undefined)?.id;
+
+      // Upload documents if any were selected
+      const filesToUpload = DOC_TYPES.filter((d) => docFiles[d.key]);
+      if (appId && filesToUpload.length > 0 && token) {
+        setIsUploadingDocs(true);
+        await Promise.allSettled(
+          filesToUpload.map(async (d) => {
+            const file = docFiles[d.key]!;
+            const fd = new FormData();
+            fd.append("file", file);
+            fd.append("entity_type", "application");
+            fd.append("entity_id", appId);
+            fd.append("name", `${d.label} — ${file.name}`);
+            await fetch("/api/v1/documents", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: fd,
+            });
+          })
+        );
+        setIsUploadingDocs(false);
+      }
+
       toast.success(t("createSuccess"));
       setIsModalOpen(false);
       setFormData({ ...emptyForm });
       setOrgSearch("");
+      setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null });
       refetchApplications();
     } catch {
       toast.error(t("createError"));
@@ -359,8 +398,10 @@ export default function ApplicationsPage() {
         onClose={() => {
           setIsModalOpen(false);
           setOrgSearch("");
+          setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null });
         }}
         title={t("newApp")}
+        size="xl"
       >
         <form onSubmit={handleCreateApplication} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -487,12 +528,55 @@ export default function ApplicationsPage() {
             </select>
           </div>
 
+          {/* ── Document Uploads ── */}
+          <div className="border-t border-stone-200 pt-4">
+            <p className="text-sm font-semibold text-stone-700 mb-3">المستندات المطلوبة</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {DOC_TYPES.map((d) => {
+                const file = docFiles[d.key];
+                return (
+                  <label
+                    key={d.key}
+                    className={`flex items-center gap-3 border rounded-lg px-3 py-2.5 cursor-pointer transition ${
+                      file
+                        ? "border-teal-400 bg-teal-50"
+                        : "border-dashed border-stone-300 hover:border-teal-400 hover:bg-stone-50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setDocFiles((prev) => ({ ...prev, [d.key]: f }));
+                      }}
+                    />
+                    {file ? (
+                      <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
+                    ) : (
+                      <Upload size={18} className="text-stone-400 shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-stone-700">{d.label}</p>
+                      {file && (
+                        <p className="text-xs text-teal-600 truncate">{file.name}</p>
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-stone-400">مستندات اختيارية — يمكن رفعها الآن أو لاحقاً. PDF أو صورة أو Excel.</p>
+          </div>
+
           <div className="flex gap-3 justify-end pt-4 border-t border-stone-200">
             <button
               type="button"
               onClick={() => {
                 setIsModalOpen(false);
                 setOrgSearch("");
+                setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null });
               }}
               className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
@@ -500,10 +584,10 @@ export default function ApplicationsPage() {
             </button>
             <button
               type="submit"
-              disabled={isCreating}
+              disabled={isCreating || isUploadingDocs}
               className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
             >
-              {isCreating ? t("creating") : t("newApp")}
+              {isUploadingDocs ? "جاري رفع المستندات..." : isCreating ? t("creating") : t("newApp")}
             </button>
           </div>
         </form>
