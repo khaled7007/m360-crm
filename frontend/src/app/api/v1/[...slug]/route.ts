@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v9`;
+const INIT_KEY = `${PREFIX}:initialized:v10`;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -372,75 +372,84 @@ export async function POST(
     if (!a) return err("Not found", 404);
 
     // ── Scoring engine ────────────────────────────────────────────────
-    // Each factor: raw_score 0-3, weight (sums to 1 across all factors)
-    // Weights per category: company_info=20%, financial=35%, credit=25%, project=10%, collateral=10%
+    // Weights per category (match form tabs):
+    //   معلومات المنشأة     = 5%
+    //   القوائم المالية      = 20%
+    //   السجل الائتماني      = 20%
+    //   تفاصيل جدوى المشروع = 50%
+    //   الضمان               = 5%
     const scoreFactors: AnyRecord[] = [];
     const fid = () => uid();
 
-    // company_info (total weight = 0.20, 4 factors × 0.05)
-    const yearsScore = a.years_in_business === "10_plus" ? 3 : a.years_in_business === "5_to_10" ? 2 : a.years_in_business === "3_to_5" ? 1 : 0;
-    const entityScore = ["jsc","llc"].includes(String(a.entity_type)) ? 3 : ["sole"].includes(String(a.entity_type)) ? 1 : 2;
+    // ── معلومات المنشأة (company_info) — وزن إجمالي 5% ─────────────────
+    // 4 عوامل: 0.0125 × 4 = 0.05
+    const yearsScore    = a.years_in_business === "10_plus" ? 3 : a.years_in_business === "5_to_10" ? 2 : a.years_in_business === "3_to_5" ? 1 : 0;
+    const entityScore   = ["jsc","llc"].includes(String(a.entity_type)) ? 3 : ["sole"].includes(String(a.entity_type)) ? 1 : 2;
     const locationScore = a.entity_location === "major_city" ? 3 : a.entity_location === "secondary_city" ? 2 : 1;
-    const incomeScore = a.income_diversification === "high" ? 3 : a.income_diversification === "medium" ? 2 : 1;
+    const incomeScore   = a.income_diversification === "high" ? 3 : a.income_diversification === "medium" ? 2 : 1;
     scoreFactors.push(
-      { id: fid(), category: "company_info", factor_name: "years_in_business",      raw_score: yearsScore,  weight: 0.05, weighted_score: yearsScore  * 0.05 / 3 },
-      { id: fid(), category: "company_info", factor_name: "entity_type",            raw_score: entityScore, weight: 0.05, weighted_score: entityScore * 0.05 / 3 },
-      { id: fid(), category: "company_info", factor_name: "entity_location",        raw_score: locationScore, weight: 0.05, weighted_score: locationScore * 0.05 / 3 },
-      { id: fid(), category: "company_info", factor_name: "income_diversification", raw_score: incomeScore, weight: 0.05, weighted_score: incomeScore * 0.05 / 3 },
+      { id: fid(), category: "company_info", factor_name: "years_in_business",      raw_score: yearsScore,    weight: 0.0125, weighted_score: yearsScore    * 0.0125 / 3 },
+      { id: fid(), category: "company_info", factor_name: "entity_type",            raw_score: entityScore,   weight: 0.0125, weighted_score: entityScore   * 0.0125 / 3 },
+      { id: fid(), category: "company_info", factor_name: "entity_location",        raw_score: locationScore, weight: 0.0125, weighted_score: locationScore * 0.0125 / 3 },
+      { id: fid(), category: "company_info", factor_name: "income_diversification", raw_score: incomeScore,   weight: 0.0125, weighted_score: incomeScore   * 0.0125 / 3 },
     );
 
-    // financial_statements (total weight = 0.35, 5 factors)
-    const revenue = Number(a.total_revenue) || 0;
-    const ocf = Number(a.operating_cash_flow) || 0;
+    // ── القوائم المالية (financial_statements) — وزن إجمالي 20% ────────
+    // audited=3%, revenue=5%, net_profit=5%, ocf=4%, dscr=3%
+    const revenue   = Number(a.total_revenue) || 0;
+    const ocf       = Number(a.operating_cash_flow) || 0;
     const netProfit = Number(a.net_profit) || 0;
     const finAmount = Number(a.financing_amount) || 1;
-    const dscr = ocf > 0 && finAmount > 0 ? ocf / (finAmount * 0.15) : 0;
-    const margin = revenue > 0 ? netProfit / revenue : 0;
-    const auditedScore = a.audited_financials ? 3 : 1;
-    const revenueScore = revenue >= 5000000 ? 3 : revenue >= 2000000 ? 2 : revenue >= 500000 ? 1 : 0;
-    const marginScore = margin >= 0.15 ? 3 : margin >= 0.08 ? 2 : margin >= 0.03 ? 1 : 0;
-    const dscrScore = dscr >= 2 ? 3 : dscr >= 1.5 ? 2 : dscr >= 1.2 ? 1 : 0;
-    const ocfScore = ocf > 0 ? (ocf >= 1000000 ? 3 : ocf >= 300000 ? 2 : 1) : 0;
+    const dscr      = ocf > 0 && finAmount > 0 ? ocf / (finAmount * 0.15) : 0;
+    const margin    = revenue > 0 ? netProfit / revenue : 0;
+    const auditedScore  = a.audited_financials ? 3 : 1;
+    const revenueScore  = revenue >= 5000000 ? 3 : revenue >= 2000000 ? 2 : revenue >= 500000 ? 1 : 0;
+    const marginScore   = margin >= 0.15 ? 3 : margin >= 0.08 ? 2 : margin >= 0.03 ? 1 : 0;
+    const dscrScore     = dscr >= 2 ? 3 : dscr >= 1.5 ? 2 : dscr >= 1.2 ? 1 : 0;
+    const ocfScore      = ocf > 0 ? (ocf >= 1000000 ? 3 : ocf >= 300000 ? 2 : 1) : 0;
     scoreFactors.push(
-      { id: fid(), category: "financial_statements", factor_name: "audited_financials", raw_score: auditedScore, weight: 0.05, weighted_score: auditedScore * 0.05 / 3 },
-      { id: fid(), category: "financial_statements", factor_name: "total_revenue",      raw_score: revenueScore, weight: 0.08, weighted_score: revenueScore * 0.08 / 3 },
-      { id: fid(), category: "financial_statements", factor_name: "net_profit",         raw_score: marginScore,  weight: 0.08, weighted_score: marginScore  * 0.08 / 3 },
-      { id: fid(), category: "financial_statements", factor_name: "operating_cash_flow",raw_score: ocfScore,     weight: 0.07, weighted_score: ocfScore     * 0.07 / 3 },
-      { id: fid(), category: "financial_statements", factor_name: "dscr",               raw_score: dscrScore,    weight: 0.07, weighted_score: dscrScore    * 0.07 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "audited_financials",  raw_score: auditedScore,  weight: 0.03, weighted_score: auditedScore  * 0.03 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "total_revenue",       raw_score: revenueScore,  weight: 0.05, weighted_score: revenueScore  * 0.05 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "net_profit",          raw_score: marginScore,   weight: 0.05, weighted_score: marginScore   * 0.05 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "operating_cash_flow", raw_score: ocfScore,      weight: 0.04, weighted_score: ocfScore      * 0.04 / 3 },
+      { id: fid(), category: "financial_statements", factor_name: "dscr",                raw_score: dscrScore,     weight: 0.03, weighted_score: dscrScore     * 0.03 / 3 },
     );
 
-    // credit_history (total weight = 0.25, 4 factors)
+    // ── السجل الائتماني (credit_history) — وزن إجمالي 20% ──────────────
+    // credit_record=7%, payment_behavior=6%, financing_default=4%, bounced_checks=3%
     const creditRecordScore = a.credit_record === "excellent" ? 3 : a.credit_record === "good" ? 2 : a.credit_record === "acceptable" ? 1 : 0;
     const payBehaviorScore  = a.payment_behavior === "excellent" ? 3 : a.payment_behavior === "satisfactory" ? 2 : a.payment_behavior === "delayed" ? 1 : 0;
     const defaultScore      = a.financing_default === "none" ? 3 : a.financing_default === "resolved" ? 1 : 0;
     const bouncedScore      = a.bounced_checks === "none" ? 3 : a.bounced_checks === "few" ? 1 : 0;
     scoreFactors.push(
-      { id: fid(), category: "credit_history", factor_name: "credit_record",     raw_score: creditRecordScore, weight: 0.08, weighted_score: creditRecordScore * 0.08 / 3 },
-      { id: fid(), category: "credit_history", factor_name: "payment_behavior",  raw_score: payBehaviorScore,  weight: 0.07, weighted_score: payBehaviorScore  * 0.07 / 3 },
-      { id: fid(), category: "credit_history", factor_name: "financing_default", raw_score: defaultScore,      weight: 0.05, weighted_score: defaultScore      * 0.05 / 3 },
-      { id: fid(), category: "credit_history", factor_name: "bounced_checks",    raw_score: bouncedScore,      weight: 0.05, weighted_score: bouncedScore      * 0.05 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "credit_record",     raw_score: creditRecordScore, weight: 0.07, weighted_score: creditRecordScore * 0.07 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "payment_behavior",  raw_score: payBehaviorScore,  weight: 0.06, weighted_score: payBehaviorScore  * 0.06 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "financing_default", raw_score: defaultScore,      weight: 0.04, weighted_score: defaultScore      * 0.04 / 3 },
+      { id: fid(), category: "credit_history", factor_name: "bounced_checks",    raw_score: bouncedScore,      weight: 0.03, weighted_score: bouncedScore      * 0.03 / 3 },
     );
 
-    // project_feasibility (total weight = 0.10, 3 factors)
-    const planScore    = a.has_project_plan ? 3 : 0;
-    const feasScore    = a.feasibility_study_quality === "strong" ? 3 : a.feasibility_study_quality === "adequate" ? 2 : a.feasibility_study_quality === "weak" ? 1 : 0;
+    // ── تفاصيل جدوى المشروع (project_feasibility) — وزن إجمالي 50% ─────
+    // has_project_plan=15%, feasibility_quality=20%, previous_projects=15%
+    const planScore     = a.has_project_plan ? 3 : 0;
+    const feasScore     = a.feasibility_study_quality === "strong" ? 3 : a.feasibility_study_quality === "adequate" ? 2 : a.feasibility_study_quality === "weak" ? 1 : 0;
     const prevProjScore = a.previous_projects_count === "5_plus" ? 3 : a.previous_projects_count === "3_to_5" ? 2 : a.previous_projects_count === "1_to_3" ? 1 : 0;
     scoreFactors.push(
-      { id: fid(), category: "project_feasibility", factor_name: "has_project_plan",         raw_score: planScore,     weight: 0.03, weighted_score: planScore     * 0.03 / 3 },
-      { id: fid(), category: "project_feasibility", factor_name: "feasibility_study_quality", raw_score: feasScore,     weight: 0.04, weighted_score: feasScore     * 0.04 / 3 },
-      { id: fid(), category: "project_feasibility", factor_name: "previous_projects_count",   raw_score: prevProjScore, weight: 0.03, weighted_score: prevProjScore * 0.03 / 3 },
+      { id: fid(), category: "project_feasibility", factor_name: "has_project_plan",          raw_score: planScore,     weight: 0.15, weighted_score: planScore     * 0.15 / 3 },
+      { id: fid(), category: "project_feasibility", factor_name: "feasibility_study_quality", raw_score: feasScore,     weight: 0.20, weighted_score: feasScore     * 0.20 / 3 },
+      { id: fid(), category: "project_feasibility", factor_name: "previous_projects_count",   raw_score: prevProjScore, weight: 0.15, weighted_score: prevProjScore * 0.15 / 3 },
     );
 
-    // collateral (total weight = 0.10, 2 factors)
-    const appraisal1 = Number(a.appraisal_1) || 0;
-    const appraisal2 = Number(a.appraisal_2) || 0;
+    // ── الضمان (collateral) — وزن إجمالي 5% ────────────────────────────
+    // ltv_ratio=3%, property_type=2%
+    const appraisal1   = Number(a.appraisal_1) || 0;
+    const appraisal2   = Number(a.appraisal_2) || 0;
     const avgAppraisal = (appraisal1 + appraisal2) / 2;
-    const ltvRatio = avgAppraisal > 0 && finAmount > 0 ? avgAppraisal / finAmount : 0;
-    const ltvScore = ltvRatio >= 1.5 ? 3 : ltvRatio >= 1.2 ? 2 : ltvRatio >= 1.0 ? 1 : 0;
+    const ltvRatio     = avgAppraisal > 0 && finAmount > 0 ? avgAppraisal / finAmount : 0;
+    const ltvScore     = ltvRatio >= 1.5 ? 3 : ltvRatio >= 1.2 ? 2 : ltvRatio >= 1.0 ? 1 : 0;
     const propTypeScore = ["commercial","industrial"].includes(String(a.property_type)) ? 3 : a.property_type === "residential" ? 2 : 1;
     scoreFactors.push(
-      { id: fid(), category: "collateral", factor_name: "ltv_ratio",    raw_score: ltvScore,     weight: 0.05, weighted_score: ltvScore     * 0.05 / 3 },
-      { id: fid(), category: "collateral", factor_name: "property_type", raw_score: propTypeScore, weight: 0.05, weighted_score: propTypeScore * 0.05 / 3 },
+      { id: fid(), category: "collateral", factor_name: "ltv_ratio",    raw_score: ltvScore,      weight: 0.03, weighted_score: ltvScore      * 0.03 / 3 },
+      { id: fid(), category: "collateral", factor_name: "property_type", raw_score: propTypeScore, weight: 0.02, weighted_score: propTypeScore * 0.02 / 3 },
     );
 
     const totalScore = Math.round(scoreFactors.reduce((s, f) => s + (f.weighted_score as number), 0) * 1000) / 10;
