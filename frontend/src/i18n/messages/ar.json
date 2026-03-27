@@ -483,7 +483,8 @@
       "overdue_alert": "تنبيه تأخر",
       "new_lead": "عميل جديد",
       "facility_disbursed": "صرف تمويل",
-      "org_updated": "تحديث منظمة"
+      "org_updated": "تحديث منظمة",
+      "credit_assessment_requested": "طلب تقييم ائتماني"
     }
   },
   "users": {

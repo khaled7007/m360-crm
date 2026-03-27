@@ -483,7 +483,8 @@
       "overdue_alert": "overdue alert",
       "new_lead": "new lead",
       "facility_disbursed": "facility disbursed",
-      "org_updated": "organization updated"
+      "org_updated": "organization updated",
+      "credit_assessment_requested": "credit assessment requested"
     }
   },
   "users": {

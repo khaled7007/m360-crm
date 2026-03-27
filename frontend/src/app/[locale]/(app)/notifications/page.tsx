@@ -28,8 +28,9 @@ const typeIcons: Record<string, { icon: React.ReactNode; color: string }> = {
   committee_meeting:     { icon: <Zap size={16} />,           color: "text-purple-500" },
   overdue_alert:         { icon: <AlertTriangle size={16} />, color: "text-orange-500" },
   new_lead:              { icon: <Info size={16} />,          color: "text-teal-500" },
-  facility_disbursed:    { icon: <Info size={16} />,          color: "text-green-600" },
-  org_updated:           { icon: <Info size={16} />,          color: "text-stone-500" },
+  facility_disbursed:           { icon: <Info size={16} />,          color: "text-green-600" },
+  org_updated:                  { icon: <Info size={16} />,          color: "text-stone-500" },
+  credit_assessment_requested:  { icon: <Zap size={16} />,           color: "text-orange-500" },
 };
 
 const fallbackTypeIcon = { icon: <Bell size={16} />, color: "text-stone-400" };
@@ -60,8 +61,9 @@ export default function NotificationsPage() {
     committee_meeting:     t("typeLabels.committee_meeting"),
     overdue_alert:         t("typeLabels.overdue_alert"),
     new_lead:              t("typeLabels.new_lead"),
-    facility_disbursed:    t("typeLabels.facility_disbursed"),
-    org_updated:           t("typeLabels.org_updated"),
+    facility_disbursed:           t("typeLabels.facility_disbursed"),
+    org_updated:                  t("typeLabels.org_updated"),
+    credit_assessment_requested:  t("typeLabels.credit_assessment_requested"),
   };
 
   const { data: notifications, isLoading, error: notificationsError, refetch } =

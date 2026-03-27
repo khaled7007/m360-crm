@@ -598,8 +598,37 @@ export async function PUT(
     const applications = await getCol("applications");
     const app = applications.find((a) => a.id === id);
     if (!app) return err("Not found", 404);
+    const prevStatus = app.status as string;
     Object.assign(app, body, { updated_at: now() });
     await setCol("applications", applications);
+
+    // Email credit analysts when application moves to credit_assessment
+    if (body.status === "credit_assessment" && prevStatus !== "credit_assessment") {
+      const users = await getCol("users");
+      const analysts = users.filter((u) => u.role === "credit_analyst" && u.email);
+      if (analysts.length > 0) {
+        const appRef = (app.reference_number ?? app.id) as string;
+        const orgName = (app.organization_name ?? app.applicant_name ?? appRef) as string;
+        await fetch(`${req.nextUrl.origin}/api/send-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipients: analysts.map((u) => ({ name: u.name_ar ?? u.name_en ?? u.email, email: u.email })),
+            subject: `طلب جديد للتقييم الائتماني — ${appRef}`,
+            body: `تم إحالة طلب التمويل <strong>${appRef}</strong> الخاص بـ <strong>${orgName}</strong> إلى مرحلة التقييم الائتماني.\n\nيرجى مراجعة الطلب وإجراء التقييم اللازم في أقرب وقت.`,
+          }),
+        }).catch(() => { /* لا نوقف العملية إذا فشل الإيميل */ });
+
+        // In-platform notification as well
+        await notifyRoles(
+          ["credit_analyst"],
+          `طلب للتقييم: ${appRef}`,
+          `تم إحالة طلب ${orgName} للتقييم الائتماني`,
+          "credit_assessment_requested", "application", id
+        );
+      }
+    }
+
     return ok(app);
   }
 
