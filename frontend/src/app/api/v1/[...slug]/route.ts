@@ -131,6 +131,16 @@ export async function GET(
     return ok(ADMIN_USER);
   }
 
+  // AUTH USERS LIST
+  if (r === "auth" && id === "users") {
+    const users = await getCol("users");
+    if (!action) return ok(paginate(users, req));
+    // GET /auth/users/:userId
+    const u = users.find((x) => x.id === action);
+    if (!u) return err("Not found", 404);
+    return ok(u);
+  }
+
   // REPORTS
   if (r === "reports") {
     const facilities = await getCol("facilities");
@@ -314,6 +324,18 @@ export async function POST(
   }
 
   if (!requireAuth(req)) return err("Unauthorized", 401);
+
+  // AUTH USERS CREATE
+  if (r === "auth" && id === "users" && !action) {
+    const body = await req.json().catch(() => ({})) as AnyRecord;
+    const users = await getCol("users");
+    const newUser: AnyRecord = { id: uid(), is_active: true, created_at: now(), updated_at: now(), ...body };
+    delete newUser.password;
+    if (body.password) await redis.set(`${PREFIX}:pwd:${newUser.id}`, body.password);
+    users.push(newUser);
+    await setCol("users", users);
+    return ok(newUser, 201);
+  }
 
   // NOTIFICATIONS: mark read
   if (r === "notifications") {
@@ -559,6 +581,17 @@ export async function PUT(
   const { slug } = await context.params;
   const [r, id, action] = slug ?? [];
 
+  // AUTH USERS UPDATE
+  if (r === "auth" && id === "users" && action) {
+    const body = await req.json().catch(() => ({})) as AnyRecord;
+    const users = await getCol("users");
+    const u = users.find((x) => x.id === action);
+    if (!u) return err("Not found", 404);
+    Object.assign(u, body, { updated_at: now() });
+    await setCol("users", users);
+    return ok(u);
+  }
+
   // Application status transition
   if (r === "applications" && id && action === "status") {
     const body = await req.json().catch(() => ({})) as AnyRecord;
@@ -599,6 +632,18 @@ export async function DELETE(
   if (!requireAuth(req)) return err("Unauthorized", 401);
   const { slug } = await context.params;
   const [r, id] = slug ?? [];
+
+  // AUTH USERS DELETE
+  if (r === "auth" && id === "users") {
+    const [,, userId] = slug ?? [];
+    if (!userId) return err("Not found", 404);
+    const users = await getCol("users");
+    const idx = users.findIndex((x) => x.id === userId);
+    if (idx === -1) return err("Not found", 404);
+    users.splice(idx, 1);
+    await setCol("users", users);
+    return new NextResponse(null, { status: 204 });
+  }
 
   // DOCUMENTS DELETE
   if (r === "documents") {
