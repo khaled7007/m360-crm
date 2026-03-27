@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { ReminderButton } from "@/components/ui/ReminderModal";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
@@ -162,6 +163,11 @@ export default function ContactsPage() {
               <Building2 size={14} />
             </button>
           )}
+          <ReminderButton
+            entityType="contact"
+            entityId={item.id}
+            entityName={item.name_en}
+          />
           {canCreate && (
             <button
               onClick={(e) => { e.stopPropagation(); openEdit(item); }}

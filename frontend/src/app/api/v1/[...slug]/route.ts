@@ -43,6 +43,7 @@ async function init() {
     redis.set(`${PREFIX}:collection_actions`, COLLECTION_ACTIONS),
     redis.set(`${PREFIX}:notifications`,        NOTIFICATIONS),
     redis.set(`${PREFIX}:credit_assessments`,  CREDIT_ASSESSMENTS),
+    redis.set(`${PREFIX}:reminders`,           []),
   ]);
   await redis.set(INIT_KEY, true);
 }
@@ -105,6 +106,7 @@ const RESOURCE_KEYS: Record<string, string> = {
   products: "products", applications: "applications", facilities: "facilities",
   committee: "committee", packages: "committee", users: "users",
   "credit-assessments": "credit_assessments",
+  reminders: "reminders",
 };
 const ARCHIVABLE = ["leads", "organizations", "contacts"];
 
@@ -213,11 +215,49 @@ export async function GET(
   }
 
   // NOTIFICATIONS
+  if (r === "reminders") {
+    const userId = userIdFromToken(req);
+    const reminders = await getCol("reminders");
+    const mine = userId ? reminders.filter((rm) => rm.user_id === userId) : reminders;
+    return ok({ data: mine, total: mine.length });
+  }
+
   if (r === "notifications") {
+    // Auto-fire due reminders → create notifications
+    const userId = userIdFromToken(req);
+    if (userId) {
+      const reminders = await getCol("reminders");
+      const nowTs = Date.now();
+      const dueReminders = reminders.filter(
+        (rm) => rm.user_id === userId && !rm.is_fired && new Date(rm.due_at as string).getTime() <= nowTs
+      );
+      if (dueReminders.length > 0) {
+        const notifications = await getCol("notifications");
+        for (const rm of dueReminders) {
+          notifications.push({
+            id: uid(),
+            user_id: userId,
+            title: `تذكير: ${rm.entity_name}`,
+            body: rm.note ? String(rm.note) : `حان موعد التذكير الخاص بـ ${rm.entity_name}`,
+            type: "reminder",
+            entity_type: rm.entity_type,
+            entity_id: rm.entity_id,
+            is_read: false,
+            created_at: now(),
+          });
+          rm.is_fired = true;
+        }
+        await Promise.all([
+          setCol("notifications", notifications),
+          setCol("reminders", reminders),
+        ]);
+      }
+    }
     const notifications = await getCol("notifications");
     if (!id) {
-      const p = paginate(notifications, req);
-      return ok({ ...p, unread_count: notifications.filter((n) => !n.is_read).length });
+      const userNotifs = userId ? notifications.filter((n) => n.user_id === userId || !n.user_id) : notifications;
+      const p = paginate(userNotifs, req);
+      return ok({ ...p, unread_count: userNotifs.filter((n) => !n.is_read).length });
     }
   }
 
@@ -575,6 +615,16 @@ export async function POST(
   const collection = await getCol(colKey);
   const body = await req.json().catch(() => ({})) as AnyRecord;
   const created: AnyRecord = { id: uid(), ...body, created_at: now(), updated_at: now() };
+
+  if (r === "reminders") {
+    const userId = userIdFromToken(req);
+    if (!userId) return err("Unauthorized", 401);
+    created.user_id = userId;
+    created.is_fired = false;
+    collection.push(created);
+    await setCol(colKey, collection);
+    return ok(created, 201);
+  }
 
   if (r === "credit-assessments") {
     // Notify credit team that a new assessment request has arrived

@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { Plus, Building2, Trash2 } from "lucide-react";
+import { ReminderButton } from "@/components/ui/ReminderModal";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
@@ -186,6 +187,11 @@ export default function LeadsPage() {
               <Building2 size={13} />{t("convertToOrg")}
             </button>
           )}
+          <ReminderButton
+            entityType="lead"
+            entityId={item.id}
+            entityName={item.company_name || item.contact_name}
+          />
           {canCreate && (
             <button onClick={(e) => { e.stopPropagation(); setDeleteLead(item); }}
               className="p-1.5 text-red-500 hover:bg-red-50 rounded transition">
