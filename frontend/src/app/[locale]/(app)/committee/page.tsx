@@ -402,17 +402,18 @@ export default function CommitteePage() {
               PDF
             </button>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openVoteModal(item);
-            }}
-            disabled={item.status !== "pending"}
-            className="flex items-center gap-1 px-3 py-1 text-xs bg-teal-600 text-white rounded hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <CheckCircle2 size={12} />
-            {t("vote")}
-          </button>
+          {item.status === "pending" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openVoteModal(item);
+              }}
+              className="flex items-center gap-1 px-3 py-1 text-xs bg-teal-600 text-white rounded hover:bg-teal-700 transition"
+            >
+              <CheckCircle2 size={12} />
+              {t("vote")}
+            </button>
+          )}
         </div>
       ),
     },

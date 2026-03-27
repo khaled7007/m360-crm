@@ -55,23 +55,25 @@ export default function CommitteePrintPage({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     async function load() {
+      const token = localStorage.getItem("m360_token") || "";
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
       try {
-        const [pkgRes, assessRes] = await Promise.all([
-          fetch(`/api/v1/packages/${id}`),
-          fetch(`/api/v1/packages`),
-        ]);
+        const pkgRes = await fetch(`/api/v1/packages/${id}`, { headers });
+        if (!pkgRes.ok) { setLoading(false); return; }
         const pkgData = await pkgRes.json();
         setPkg(pkgData);
 
         if (pkgData?.credit_assessment_id) {
-          const aRes = await fetch(`/api/v1/credit-assessments/${pkgData.credit_assessment_id}`);
-          const aData = await aRes.json();
-          setAssessment(aData);
+          const aRes = await fetch(`/api/v1/credit-assessments/${pkgData.credit_assessment_id}`, { headers });
+          if (aRes.ok) {
+            const aData = await aRes.json();
+            setAssessment(aData);
 
-          if (aData?.organization_id) {
-            const oRes = await fetch(`/api/v1/organizations/${aData.organization_id}`);
-            const oData = await oRes.json();
-            setOrg(oData);
+            if (aData?.organization_id) {
+              const oRes = await fetch(`/api/v1/organizations/${aData.organization_id}`, { headers });
+              if (oRes.ok) setOrg(await oRes.json());
+            }
           }
         }
       } finally {
@@ -173,8 +175,8 @@ export default function CommitteePrintPage({ params }: { params: Promise<{ id: s
           </p>
           <p className="text-sm mt-2 text-gray-500">
             {isApproved
-              ? `حصل على ${pkg.votes_for} أصوات قبول من أصل ${(pkg.votes || []).length} صوت`
-              : `حصل على ${pkg.votes_against} أصوات رفض من أصل ${(pkg.votes || []).length} صوت`}
+              ? `حصل على ${pkg.votes_for ?? 0} أصوات قبول من أصل ${(pkg.votes || []).length} صوت`
+              : `حصل على ${pkg.votes_against ?? 0} أصوات رفض من أصل ${(pkg.votes || []).length} صوت`}
           </p>
         </div>
 
