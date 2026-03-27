@@ -59,6 +59,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("common");
+  const tu = useTranslations("users");
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const [collapsed, setCollapsed] = useState(false);
@@ -136,7 +137,7 @@ export function Sidebar() {
         {(!collapsed || mobileOpen) && user && (
           <div className="mb-2">
             <p className="text-sm font-medium truncate">{user.name_en}</p>
-            <p className="text-xs text-stone-400 truncate">{user.role}</p>
+            <p className="text-xs text-stone-400 truncate">{tu(`roleLabels.${user.role}` as Parameters<typeof tu>[0])}</p>
           </div>
         )}
         <div className="mb-2">

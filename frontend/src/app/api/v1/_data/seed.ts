@@ -1,17 +1,24 @@
 // ─── Seed data for the mock API (used when BACKEND_URL is not set) ───────────
 
-export const ADMIN_EMAIL = "admin@m360.sa";
+export const ADMIN_EMAIL = "ceo@tharaco.sa";
 export const ADMIN_PASSWORD = "admin123!";
 export const MOCK_TOKEN = "mock-jwt-token-clientscycle";
 export const MOCK_REFRESH = "mock-refresh-token-clientscycle";
 
 // ── Users ──────────────────────────────────────────────────────────────────
 export const USERS = [
-  { id: "u-001", email: "admin@m360.sa",   name_en: "Admin User",      name_ar: "المدير",         role: "admin",               is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
-  { id: "u-002", email: "sarah@m360.sa",   name_en: "Sarah Mohammed",  name_ar: "سارة محمد",      role: "manager",             is_active: true, created_at: "2025-01-02T00:00:00Z", updated_at: "2025-01-02T00:00:00Z" },
-  { id: "u-003", email: "ahmed@m360.sa",   name_en: "Ahmed Al-Otaibi", name_ar: "أحمد العتيبي",   role: "loan_officer",        is_active: true, created_at: "2025-01-03T00:00:00Z", updated_at: "2025-01-03T00:00:00Z" },
-  { id: "u-004", email: "nora@m360.sa",    name_en: "Nora Al-Zahrani", name_ar: "نورة الزهراني",  role: "credit_analyst",      is_active: true, created_at: "2025-01-04T00:00:00Z", updated_at: "2025-01-04T00:00:00Z" },
-  { id: "u-005", email: "khalid@m360.sa",  name_en: "Khalid Al-Saadi", name_ar: "خالد السعدي",    role: "collections_officer", is_active: true, created_at: "2025-01-05T00:00:00Z", updated_at: "2025-01-05T00:00:00Z" },
+  // ── Super Admins ──
+  { id: "u-001", email: "ceo@tharaco.sa",             name_en: "CEO",                  name_ar: "الرئيس التنفيذي",       role: "super_admin",        is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
+  { id: "u-002", email: "Kalghamdi@tharaco.sa",       name_en: "K. Al-Ghamdi",         name_ar: "الغامدي",               role: "super_admin",        is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
+  // ── إدارة الائتمان ──
+  { id: "u-003", email: "aanazi@tharaco.sa",           name_en: "Abdulmajeed Al-Anazi", name_ar: "عبدالمجيد العنزي",     role: "credit_manager",     is_active: true, created_at: "2025-01-02T00:00:00Z", updated_at: "2025-01-02T00:00:00Z" },
+  { id: "u-004", email: "falshalwi@tharaco.sa",        name_en: "Faisal Al-Shalawi",    name_ar: "فيصل الشلوي",          role: "credit_officer",     is_active: true, created_at: "2025-01-03T00:00:00Z", updated_at: "2025-01-03T00:00:00Z" },
+  // ── إدارة العمليات ──
+  { id: "u-005", email: "malshussaini@tharaco.sa",     name_en: "Mashaael",             name_ar: "مشاعل",                role: "operations_manager", is_active: true, created_at: "2025-01-04T00:00:00Z", updated_at: "2025-01-04T00:00:00Z" },
+  // ── إدارة المبيعات ──
+  { id: "u-006", email: "malenezi@tharaco.sa",         name_en: "Mansour Al-Enezi",     name_ar: "منصور العنزي",         role: "sales_manager",      is_active: true, created_at: "2025-01-05T00:00:00Z", updated_at: "2025-01-05T00:00:00Z" },
+  // ── إدارة العناية بالعميل ──
+  { id: "u-007", email: "ralbidah@tharaco.sa",         name_en: "Ruba Al-Bidah",        name_ar: "ربى",                  role: "care_manager",       is_active: true, created_at: "2025-01-06T00:00:00Z", updated_at: "2025-01-06T00:00:00Z" },
 ];
 
 export const ADMIN_USER = USERS[0];

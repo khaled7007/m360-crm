@@ -15,6 +15,14 @@ import { RoleGuard } from "@/components/ui/RoleGuard";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type UserRole =
+  | "super_admin"
+  | "credit_manager"
+  | "credit_officer"
+  | "operations_manager"
+  | "operations_officer"
+  | "sales_manager"
+  | "sales_officer"
+  | "care_manager"
   | "admin"
   | "manager"
   | "loan_officer"
@@ -48,13 +56,21 @@ const DEFAULT_FORM: CreateUserInput = {
   password: "",
   name_en: "",
   name_ar: "",
-  role: "loan_officer",
+  role: "sales_officer",
 };
 
 // ─── Role badge colours (extends StatusBadge palette via inline fallbacks) ────
 
 const roleBadgeColor: Record<UserRole, string> = {
-  admin: "bg-red-100 text-red-700",
+  super_admin: "bg-red-100 text-red-700",
+  credit_manager: "bg-blue-100 text-blue-700",
+  credit_officer: "bg-blue-50 text-blue-600",
+  operations_manager: "bg-purple-100 text-purple-700",
+  operations_officer: "bg-purple-50 text-purple-600",
+  sales_manager: "bg-green-100 text-green-700",
+  sales_officer: "bg-green-50 text-green-600",
+  care_manager: "bg-amber-100 text-amber-700",
+  admin: "bg-red-50 text-red-600",
   manager: "bg-purple-100 text-purple-700",
   loan_officer: "bg-teal-100 text-teal-700",
   credit_analyst: "bg-cyan-100 text-cyan-700",
@@ -63,14 +79,14 @@ const roleBadgeColor: Record<UserRole, string> = {
   data_entry: "bg-stone-100 text-stone-700",
 };
 
-function RoleBadge({ role }: { role: UserRole }) {
+function RoleBadge({ role, label }: { role: UserRole; label?: string }) {
   const color = roleBadgeColor[role] ?? "bg-stone-100 text-stone-700";
-  const label = role.replace(/_/g, " ");
+  const displayLabel = label ?? role.replace(/_/g, " ");
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${color}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}
     >
-      {label}
+      {displayLabel}
     </span>
   );
 }
@@ -82,13 +98,14 @@ export default function UsersPage() {
   const tc = useTranslations("common");
 
   const ROLES: { value: UserRole; label: string }[] = [
-    { value: "admin", label: t("roleLabels.admin") },
-    { value: "manager", label: t("roleLabels.manager") },
-    { value: "loan_officer", label: t("roleLabels.loan_officer") },
-    { value: "credit_analyst", label: t("roleLabels.credit_analyst") },
-    { value: "compliance_officer", label: t("roleLabels.compliance_officer") },
-    { value: "collections_officer", label: t("roleLabels.collections_officer") },
-    { value: "data_entry", label: t("roleLabels.data_entry") },
+    { value: "super_admin", label: t("roleLabels.super_admin") },
+    { value: "credit_manager", label: t("roleLabels.credit_manager") },
+    { value: "credit_officer", label: t("roleLabels.credit_officer") },
+    { value: "operations_manager", label: t("roleLabels.operations_manager") },
+    { value: "operations_officer", label: t("roleLabels.operations_officer") },
+    { value: "sales_manager", label: t("roleLabels.sales_manager") },
+    { value: "sales_officer", label: t("roleLabels.sales_officer") },
+    { value: "care_manager", label: t("roleLabels.care_manager") },
   ];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,7 +180,7 @@ export default function UsersPage() {
     {
       key: "role",
       header: t("role"),
-      render: (item) => <RoleBadge role={item.role} />,
+      render: (item) => <RoleBadge role={item.role} label={t(`roleLabels.${item.role}`)} />,
     },
     {
       key: "is_active",
@@ -188,7 +205,7 @@ export default function UsersPage() {
   ];
 
   return (
-    <RoleGuard roles={["admin"]}>
+    <RoleGuard roles={["super_admin", "admin", "credit_manager", "operations_manager"]}>
     <div>
       <PageHeader
         title={t("title")}

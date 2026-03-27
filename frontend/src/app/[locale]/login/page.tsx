@@ -63,7 +63,7 @@ export default function LoginPage() {
 
             <div className="flex gap-8">
               <div className="border-l-2 border-teal-400/40 pl-4">
-                <p className="text-2xl font-bold text-white">7</p>
+                <p className="text-2xl font-bold text-white">8</p>
                 <p className="text-sm text-teal-200">{t("statsUserRoles")}</p>
               </div>
               <div className="border-l-2 border-teal-400/40 pl-4">
@@ -108,7 +108,7 @@ export default function LoginPage() {
                 type="email"
                 {...register("email")}
                 className={`w-full px-4 py-3 border rounded-lg text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-shadow ${errors.email ? "border-red-400" : "border-stone-300"}`}
-                placeholder="admin@m360.sa"
+                placeholder="ceo@tharaco.sa"
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? "email-error" : undefined}
               />
