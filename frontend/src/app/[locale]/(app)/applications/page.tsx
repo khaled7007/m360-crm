@@ -35,7 +35,10 @@ interface Organization {
 
 interface Product {
   id: string;
-  name: string;
+  name_ar: string;
+  name?: string;
+  product_category?: string;
+  re_program?: string | null;
   type?: string;
 }
 
@@ -105,6 +108,7 @@ export default function ApplicationsPage() {
 
   const { data: organizations } = useApiList<Organization>("/organizations");
   const { data: products } = useApiList<Product>("/products");
+
   const {
     data: applications,
     pagination,
@@ -388,6 +392,7 @@ export default function ApplicationsPage() {
                 applications.find((app) => app.id === expandedApplicationId)!
               }
               onStatusChanged={refetchApplications}
+              products={products}
             />
           )}
         </div>
@@ -452,8 +457,7 @@ export default function ApplicationsPage() {
                 <option value="">{t("selectProduct")}</option>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {product.name}
-                    {product.type ? ` (${product.type})` : ""}
+                    {getProductLabel(product)}
                   </option>
                 ))}
               </select>
@@ -663,8 +667,7 @@ export default function ApplicationsPage() {
                 <option value="">{t("selectProduct")}</option>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {product.name}
-                    {product.type ? ` (${product.type})` : ""}
+                    {getProductLabel(product)}
                   </option>
                 ))}
               </select>
@@ -769,12 +772,23 @@ export default function ApplicationsPage() {
   );
 }
 
+const RE_PROGRAM_LABELS: Record<string, string> = {
+  leadership: "برنامج الريادة",
+  growth:     "برنامج النمو",
+  expansion:  "برنامج التوسع",
+};
+function getProductLabel(p: Product) {
+  const base = p.name_ar || p.name || p.id;
+  if (p.re_program) return `${base} — ${RE_PROGRAM_LABELS[p.re_program] ?? p.re_program}`;
+  return base;
+}
+
 const APP_STATUSES = [
   "draft", "submitted", "pre_approved", "documents_collected",
   "credit_assessment", "committee_review", "approved", "rejected", "disbursed",
 ] as const;
 
-function ApplicationDetails({ application, onStatusChanged }: { application: Application; onStatusChanged: () => void }) {
+function ApplicationDetails({ application, onStatusChanged, products }: { application: Application; onStatusChanged: () => void; products: Product[] }) {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
   const { statusConfig } = useStatusConfig();
@@ -835,7 +849,9 @@ function ApplicationDetails({ application, onStatusChanged }: { application: App
 
         <div>
           <p className="text-sm text-stone-600">{t("product")}</p>
-          <p className="font-medium text-stone-900">{application.product_id}</p>
+          <p className="font-medium text-stone-900">
+            {getProductLabel(products.find((p) => p.id === application.product_id) ?? { id: application.product_id, name_ar: application.product_id })}
+          </p>
         </div>
 
         <div>
