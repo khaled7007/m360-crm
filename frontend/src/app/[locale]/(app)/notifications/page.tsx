@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useApiList, useApiMutation } from "@/lib/use-api";
-import { Bell, BellOff, CheckCheck, Info, AlertTriangle, Zap } from "lucide-react";
+import { Bell, BellOff, CheckCheck, Info, AlertTriangle, Zap, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { NotificationPrefsModal } from "@/components/notifications/NotificationPrefsModal";
 
 interface Notification {
   id: string;
@@ -50,6 +51,7 @@ export default function NotificationsPage() {
   const t = useTranslations("notifications");
   const tc = useTranslations("common");
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [showPrefs, setShowPrefs] = useState(false);
 
   const typeLabels: Record<string, string> = {
     info:                  t("typeLabels.info"),
@@ -111,18 +113,28 @@ export default function NotificationsPage() {
         title={t("title")}
         description={t("subtitle")}
         action={
-          unreadCount > 0 ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleMarkAllRead}
-              disabled={isMarkingAll}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+              onClick={() => setShowPrefs(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 transition"
             >
-              <CheckCheck size={16} />
-              {isMarkingAll ? t("marking") : t("markAllRead")}
+              <Settings size={16} />
+              إعدادات الإشعارات
             </button>
-          ) : null
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                disabled={isMarkingAll}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+              >
+                <CheckCheck size={16} />
+                {isMarkingAll ? t("marking") : t("markAllRead")}
+              </button>
+            )}
+          </div>
         }
       />
+      {showPrefs && <NotificationPrefsModal onClose={() => setShowPrefs(false)} />}
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-lg p-1 w-fit">

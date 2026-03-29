@@ -11,8 +11,9 @@ import { useApiList, useApiMutation } from "@/lib/use-api";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Shield } from "lucide-react";
 import { RoleGuard } from "@/components/ui/RoleGuard";
+import { UserPermissionsModal } from "@/components/users/UserPermissionsModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,7 @@ export default function UsersPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);
+  const [permUser, setPermUser] = useState<AppUser | null>(null);
   const [editForm, setEditForm] = useState<Partial<AppUser>>({});
   const [page, setPage] = useState({ limit: 20, offset: 0 });
   const [searchQuery, setSearchQuery] = useState("");
@@ -250,6 +252,9 @@ export default function UsersPage() {
       header: "",
       render: (item: AppUser) => (
         <div className="flex gap-2 justify-end">
+          <button onClick={() => setPermUser(item)} className="p-1.5 rounded hover:bg-stone-100 text-stone-500 hover:text-teal-600 transition-colors" title="الصلاحيات">
+            <Shield size={15} />
+          </button>
           <button onClick={() => handleEdit(item)} className="p-1.5 rounded hover:bg-stone-100 text-stone-500 hover:text-teal-600 transition-colors" title="تعديل">
             <Pencil size={15} />
           </button>
@@ -433,6 +438,13 @@ export default function UsersPage() {
           </div>
         </form>
       </Modal>
+
+      {permUser && (
+        <UserPermissionsModal
+          user={permUser}
+          onClose={() => setPermUser(null)}
+        />
+      )}
 
       {/* Edit User Modal */}
       <Modal open={!!editUser} onClose={() => setEditUser(null)} title="تعديل المستخدم" size="md">

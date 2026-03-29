@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v12`;
+const INIT_KEY = `${PREFIX}:initialized:v13`;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -44,6 +44,8 @@ async function init() {
     redis.set(`${PREFIX}:notifications`,        NOTIFICATIONS),
     redis.set(`${PREFIX}:credit_assessments`,  CREDIT_ASSESSMENTS),
     redis.set(`${PREFIX}:reminders`,           []),
+    redis.set(`${PREFIX}:notification_prefs`,  []),
+    redis.set(`${PREFIX}:user_permissions`,    []),
   ]);
   await redis.set(INIT_KEY, true);
 }
@@ -99,6 +101,16 @@ async function notifyRoles(roles: string[], title: string, body: string, type: s
     notifications.push({ id: uid(), user_id: u.id, title, body, type, entity_type: entityType, entity_id: entityId, is_read: false, created_at: now() });
   }
   await setCol("notifications", notifications);
+}
+
+async function sendEmailViaAPI(req: NextRequest, recipients: { name: string; email: string }[], subject: string, body: string) {
+  try {
+    await fetch(`${req.nextUrl.origin}/api/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipients, subject, body }),
+    });
+  } catch { /* fire and forget */ }
 }
 
 const RESOURCE_KEYS: Record<string, string> = {
@@ -259,6 +271,42 @@ export async function GET(
       const p = paginate(userNotifs, req);
       return ok({ ...p, unread_count: userNotifs.filter((n) => !n.is_read).length });
     }
+  }
+
+  // NOTIFICATION PREFS
+  if (r === "notification-prefs") {
+    const userId = userIdFromToken(req);
+    if (!userId) return err("Unauthorized", 401);
+    const prefs = await getCol("notification_prefs");
+    const userPrefs = prefs.filter((p) => p.user_id === userId);
+    if (userPrefs.length === 0) {
+      const defaultEvents = [
+        "credit_assessment_created", "credit_assessment_scored",
+        "committee_created", "committee_decision",
+        "status_submitted", "status_approved", "status_rejected",
+      ];
+      return ok(defaultEvents.map((event) => ({ user_id: userId, event, email: true, in_platform: true })));
+    }
+    return ok(userPrefs);
+  }
+
+  // USER PERMISSIONS (GET)
+  if (r === "user-permissions" && id) {
+    const requesterId = userIdFromToken(req);
+    if (!requesterId) return err("Unauthorized", 401);
+    const requester = await getUserById(requesterId);
+    if (!requester || requester.role !== "super_admin") return err("Forbidden", 403);
+    const perms = await getCol("user_permissions");
+    const userPerms = perms.filter((p) => p.user_id === id);
+    if (userPerms.length === 0) {
+      const defaultPages = [
+        "leads", "organizations", "contacts", "applications", "credit-assessment",
+        "committee", "facilities", "collections", "pipeline", "reports",
+        "users", "integrations", "products", "archive",
+      ];
+      return ok(defaultPages.map((page) => ({ user_id: id, page, can_view: true, can_create: true, can_edit: true, can_delete: true })));
+    }
+    return ok(userPerms);
   }
 
   // INTEGRATIONS
@@ -452,14 +500,34 @@ export async function POST(
     // notify credit team when decision is reached
     if (pkg.status !== prevStatus && (pkg.status === "approved" || pkg.status === "rejected")) {
       const decisionAr = pkg.status === "approved" ? "قبول" : "رفض";
+      const decisionMsg = `صدر قرار اللجنة بـ${decisionAr} التقييم الائتماني. يمكنك الاطلاع على تفاصيل التصويت وتعديل التقييم أو اعتماده نهائياً.`;
       await notifyRoles(
         ["credit_manager", "credit_officer"],
         `قرار اللجنة: ${decisionAr}`,
-        `صدر قرار اللجنة بـ${decisionAr} التقييم الائتماني. يمكنك الاطلاع على تفاصيل التصويت وتعديل التقييم أو اعتماده نهائياً.`,
+        decisionMsg,
         "committee_decision",
         "committee",
         id
       );
+      await notifyRoles(
+        ["sales_manager", "sales_officer"],
+        `قرار اللجنة: ${decisionAr}`,
+        decisionMsg,
+        "committee_decision",
+        "committee",
+        id
+      );
+      const decisionUsers = (await getCol("users")).filter((u) =>
+        ["credit_manager", "credit_officer", "sales_manager", "sales_officer"].includes(u.role as string) && u.email
+      );
+      if (decisionUsers.length > 0) {
+        await sendEmailViaAPI(
+          req,
+          decisionUsers.map((u) => ({ name: (u.name_ar ?? u.name_en ?? u.email) as string, email: u.email as string })),
+          `قرار اللجنة: ${decisionAr}`,
+          decisionMsg
+        );
+      }
     }
     return ok(vote, 201);
   }
@@ -597,6 +665,17 @@ export async function POST(
       `تم الانتهاء من التقييم الائتماني وتصنيفه ${grade}`,
       "credit_assessment_scored", "credit_assessment", id
     );
+    const salesUsers = (await getCol("users")).filter((u) =>
+      ["sales_manager", "sales_officer"].includes(u.role as string) && u.email
+    );
+    if (salesUsers.length > 0) {
+      await sendEmailViaAPI(
+        req,
+        salesUsers.map((u) => ({ name: (u.name_ar ?? u.name_en ?? u.email) as string, email: u.email as string })),
+        "اكتمل التقييم الائتماني",
+        `تم الانتهاء من التقييم الائتماني وتصنيفه ${grade}.`
+      );
+    }
     return ok(score, 201);
   }
 
@@ -649,6 +728,17 @@ export async function POST(
       "وصل طلب تقييم ائتماني جديد يحتاج مراجعتك",
       "credit_assessment_created", "credit_assessment", created.id as string
     );
+    const creditUsers = (await getCol("users")).filter((u) =>
+      ["credit_manager", "credit_officer"].includes(u.role as string) && u.email
+    );
+    if (creditUsers.length > 0) {
+      await sendEmailViaAPI(
+        req,
+        creditUsers.map((u) => ({ name: (u.name_ar ?? u.name_en ?? u.email) as string, email: u.email as string })),
+        "طلب تقييم ائتماني جديد",
+        "وصل طلب تقييم ائتماني جديد يحتاج مراجعتك."
+      );
+    }
   }
   if (r === "applications") {
     created.reference_number = `APP-${new Date().getFullYear()}-${String(collection.length + 1).padStart(3, "0")}`;
@@ -659,6 +749,23 @@ export async function POST(
     if (!created.votes) created.votes = [];
     if (created.votes_for === undefined) created.votes_for = 0;
     if (created.votes_against === undefined) created.votes_against = 0;
+    await notifyRoles(
+      ["credit_manager", "credit_officer", "operations_manager"],
+      "طلب تصويت جديد في اللجنة",
+      "وصل طلب تصويت جديد للجنة يحتاج مراجعتك",
+      "committee_created", "committee", created.id as string
+    );
+    const committeeUsers = (await getCol("users")).filter((u) =>
+      ["credit_manager", "credit_officer", "operations_manager"].includes(u.role as string) && u.email
+    );
+    if (committeeUsers.length > 0) {
+      await sendEmailViaAPI(
+        req,
+        committeeUsers.map((u) => ({ name: (u.name_ar ?? u.name_en ?? u.email) as string, email: u.email as string })),
+        "طلب تصويت جديد في اللجنة",
+        "وصل طلب تصويت جديد للجنة يحتاج مراجعتك ومشاركتك في التصويت."
+      );
+    }
   }
   if (r === "facilities") {
     created.reference_number = `FAC-${new Date().getFullYear()}-${String(collection.length + 1).padStart(3, "0")}`;
@@ -728,6 +835,35 @@ export async function PUT(
     }
 
     return ok(app);
+  }
+
+  // NOTIFICATION PREFS UPDATE
+  if (r === "notification-prefs") {
+    const userId = userIdFromToken(req);
+    if (!userId) return err("Unauthorized", 401);
+    const body = await req.json().catch(() => ({})) as AnyRecord;
+    const incomingPrefs = (body.prefs as AnyRecord[]) ?? [];
+    const prefs = await getCol("notification_prefs");
+    // Remove old prefs for this user and replace
+    const otherPrefs = prefs.filter((p) => p.user_id !== userId);
+    const newPrefs = incomingPrefs.map((p) => ({ ...p, user_id: userId }));
+    await setCol("notification_prefs", [...otherPrefs, ...newPrefs]);
+    return ok({ success: true });
+  }
+
+  // USER PERMISSIONS UPDATE
+  if (r === "user-permissions" && id) {
+    const requesterId = userIdFromToken(req);
+    if (!requesterId) return err("Unauthorized", 401);
+    const requester = await getUserById(requesterId);
+    if (!requester || requester.role !== "super_admin") return err("Forbidden", 403);
+    const body = await req.json().catch(() => ({})) as AnyRecord;
+    const incomingPerms = (body.permissions as AnyRecord[]) ?? [];
+    const perms = await getCol("user_permissions");
+    const otherPerms = perms.filter((p) => p.user_id !== id);
+    const newPerms = incomingPerms.map((p) => ({ ...p, user_id: id }));
+    await setCol("user_permissions", [...otherPerms, ...newPerms]);
+    return ok({ success: true });
   }
 
   const colKey = RESOURCE_KEYS[r];
