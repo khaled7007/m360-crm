@@ -18,14 +18,33 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { notifySentToCredit, notifyStatusChange } from "@/lib/notify";
 
-const DOC_TYPES = [
-  { key: "cr",                  label: "السجل التجاري" },
-  { key: "bank_statement",      label: "كشف الحساب البنكي" },
-  { key: "simah_personal",      label: "إقرار سمة الشخصي" },
-  { key: "simah_company",       label: "إقرار سمة المنشأة" },
-  { key: "financial_statements",label: "القوائم المالية" },
-  { key: "other",               label: "ملفات أخرى" },
-] as const;
+const RE_DOC_TYPES = [
+  { key: "owner_ids",            label: "هويات الملاك" },
+  { key: "incorporation",        label: "عقد تأسيس الشركة" },
+  { key: "business_license",     label: "رخصة مزاولة النشاط" },
+  { key: "bank_statement",       label: "كشف الحساب" },
+  { key: "property_deed",        label: "صك العقار المراد رهنه" },
+  { key: "gosi",                 label: "شهادة التأمينات الاجتماعية" },
+  { key: "building_permit",      label: "رخصة بناء المشروع" },
+  { key: "feasibility_study",    label: "دراسة جدوى المشروع" },
+  { key: "vat_registration",     label: "إشعار التسجيل بضريبة القيمة المضافة" },
+  { key: "national_address",     label: "العنوان الوطني" },
+  { key: "previous_projects",    label: "المشاريع السابقة" },
+];
+
+const CONTRACTOR_DOC_TYPES = [
+  { key: "owner_ids",            label: "هويات الملاك" },
+  { key: "incorporation",        label: "عقد تأسيس الشركة" },
+  { key: "business_license",     label: "رخصة مزاولة النشاط" },
+  { key: "bank_statement",       label: "كشف الحساب" },
+  { key: "invoice_to_finance",   label: "الفاتورة المراد تمويلها" },
+  { key: "gosi",                 label: "شهادة التأمينات الاجتماعية" },
+  { key: "previous_contracts",   label: "العقود والفواتير السابقة" },
+  { key: "vat_certificate",      label: "شهادة التسجيل بالضريبة المضافة" },
+  { key: "national_address",     label: "العنوان الوطني" },
+];
+
+const DEFAULT_DOC_TYPES = CONTRACTOR_DOC_TYPES;
 
 interface Organization {
   id: string;
@@ -97,9 +116,7 @@ export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState<AppFormInput>({ ...emptyForm });
   const [orgSearch, setOrgSearch] = useState("");
-  const [docFiles, setDocFiles] = useState<Record<string, File | null>>({
-    cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null,
-  });
+  const [docFiles, setDocFiles] = useState<Record<string, File | null>>({});
   const [isUploadingDocs, setIsUploadingDocs] = useState(false);
 
   const [editItem, setEditItem] = useState<Application | null>(null);
@@ -108,6 +125,12 @@ export default function ApplicationsPage() {
 
   const { data: organizations } = useApiList<Organization>("/organizations");
   const { data: products } = useApiList<Product>("/products");
+
+  const activeDocTypes = (() => {
+    const p = products.find((x) => x.id === formData.product_id);
+    if (!p) return DEFAULT_DOC_TYPES;
+    return p.product_category === "real_estate" ? RE_DOC_TYPES : CONTRACTOR_DOC_TYPES;
+  })();
 
   const {
     data: applications,
@@ -154,7 +177,7 @@ export default function ApplicationsPage() {
       const appId = (created as { id?: string } | undefined)?.id;
 
       // Upload documents if any were selected
-      const filesToUpload = DOC_TYPES.filter((d) => docFiles[d.key]);
+      const filesToUpload = activeDocTypes.filter((d) => docFiles[d.key]);
       if (appId && filesToUpload.length > 0 && token) {
         setIsUploadingDocs(true);
         await Promise.allSettled(
@@ -179,7 +202,7 @@ export default function ApplicationsPage() {
       setIsModalOpen(false);
       setFormData({ ...emptyForm });
       setOrgSearch("");
-      setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null });
+      setDocFiles({});
       refetchApplications();
     } catch {
       toast.error(t("createError"));
@@ -408,7 +431,7 @@ export default function ApplicationsPage() {
         onClose={() => {
           setIsModalOpen(false);
           setOrgSearch("");
-          setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null });
+          setDocFiles({});
         }}
         title={t("newApp")}
         size="xl"
@@ -541,7 +564,7 @@ export default function ApplicationsPage() {
           <div className="border-t border-stone-200 pt-4">
             <p className="text-sm font-semibold text-stone-700 mb-3">المستندات المطلوبة</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {DOC_TYPES.map((d) => {
+              {activeDocTypes.map((d) => {
                 const file = docFiles[d.key];
                 return (
                   <label
@@ -585,7 +608,7 @@ export default function ApplicationsPage() {
               onClick={() => {
                 setIsModalOpen(false);
                 setOrgSearch("");
-                setDocFiles({ cr: null, bank_statement: null, simah_personal: null, simah_company: null, financial_statements: null, other: null });
+                setDocFiles({});
               }}
               className="px-4 py-2 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-50 transition"
             >
