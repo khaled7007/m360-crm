@@ -68,8 +68,8 @@ export async function notifySentToCredit(
 
   await sendEmailNotifications({
     recipients: [
-      { name: "سارة محمد",    email: "sarah@m360.sa" },
-      { name: "نورة الزهراني", email: "nora@m360.sa"  },
+      { name: "الغامدي",        email: "Kalghamdi@tharaco.sa" },
+      { name: "فيصل الشلوي",    email: "falshalwi@tharaco.sa" },
     ],
     subject: title,
     body,
@@ -97,7 +97,7 @@ export async function notifyCommitteeDecision(
 
   await sendEmailNotifications({
     recipients: [
-      { name: "عبدالمجيد العنزي", email: "aanazi@tharaco.sa"   },
+      { name: "عبدالمجيد العنزي", email: "aanazi@tharaco.sa"    },
       { name: "فيصل الشلوي",      email: "falshalwi@tharaco.sa" },
     ],
     subject: title,
@@ -116,37 +116,37 @@ export async function notifyStatusChange(
     submitted: {
       title:   "طلب جديد بانتظار المراجعة",
       userIds: ["u-001", "u-002"],
-      emails:  [{ name: "المدير", email: "admin@m360.sa" }, { name: "سارة محمد", email: "sarah@m360.sa" }],
+      emails:  [{ name: "الرئيس التنفيذي", email: "ceo@tharaco.sa" }, { name: "الغامدي", email: "Kalghamdi@tharaco.sa" }],
     },
     pre_approved: {
       title:   "طلب حصل على الموافقة المبدئية",
       userIds: ["u-003"],
-      emails:  [{ name: "أحمد العتيبي", email: "ahmed@m360.sa" }],
+      emails:  [{ name: "عبدالمجيد العنزي", email: "aanazi@tharaco.sa" }],
     },
     credit_assessment: {
       title:   "طلب جديد للتقييم الائتماني",
       userIds: ["u-002", "u-004"],
-      emails:  [{ name: "سارة محمد", email: "sarah@m360.sa" }, { name: "نورة الزهراني", email: "nora@m360.sa" }],
+      emails:  [{ name: "الغامدي", email: "Kalghamdi@tharaco.sa" }, { name: "فيصل الشلوي", email: "falshalwi@tharaco.sa" }],
     },
     committee_review: {
       title:   "طلب أُحيل للجنة",
       userIds: ["u-001", "u-002"],
-      emails:  [{ name: "المدير", email: "admin@m360.sa" }, { name: "سارة محمد", email: "sarah@m360.sa" }],
+      emails:  [{ name: "الرئيس التنفيذي", email: "ceo@tharaco.sa" }, { name: "الغامدي", email: "Kalghamdi@tharaco.sa" }],
     },
     approved: {
       title:   "تمت الموافقة على الطلب",
       userIds: ["u-001", "u-003"],
-      emails:  [{ name: "المدير", email: "admin@m360.sa" }, { name: "أحمد العتيبي", email: "ahmed@m360.sa" }],
+      emails:  [{ name: "الرئيس التنفيذي", email: "ceo@tharaco.sa" }, { name: "عبدالمجيد العنزي", email: "aanazi@tharaco.sa" }],
     },
     rejected: {
       title:   "تم رفض الطلب",
       userIds: ["u-001", "u-003"],
-      emails:  [{ name: "المدير", email: "admin@m360.sa" }, { name: "أحمد العتيبي", email: "ahmed@m360.sa" }],
+      emails:  [{ name: "الرئيس التنفيذي", email: "ceo@tharaco.sa" }, { name: "عبدالمجيد العنزي", email: "aanazi@tharaco.sa" }],
     },
     disbursed: {
       title:   "تم صرف التمويل",
       userIds: ["u-001", "u-002"],
-      emails:  [{ name: "المدير", email: "admin@m360.sa" }, { name: "سارة محمد", email: "sarah@m360.sa" }],
+      emails:  [{ name: "الرئيس التنفيذي", email: "ceo@tharaco.sa" }, { name: "الغامدي", email: "Kalghamdi@tharaco.sa" }],
     },
   };
 
