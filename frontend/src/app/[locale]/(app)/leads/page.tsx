@@ -7,7 +7,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { PaginationControls } from "@/components/ui/PaginationControls";
-import { Plus, Building2, Trash2 } from "lucide-react";
+import { Plus, Building2, Trash2, FileUp } from "lucide-react";
+import { LeadImportModal } from "@/components/leads/LeadImportModal";
 import { ReminderButton } from "@/components/ui/ReminderModal";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -64,6 +65,7 @@ export default function LeadsPage() {
   const canConvert = CONVERT_ROLES.includes(user?.role || "");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [convertLead, setConvertLead] = useState<Lead | null>(null);
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
@@ -212,13 +214,22 @@ export default function LeadsPage() {
       <div className="flex items-center justify-between">
         <PageHeader title={t("title")} description={t("subtitle")} />
         {canCreate && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-          >
-            <Plus size={20} />
-            {t("newLead")}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 transition"
+            >
+              <FileUp size={16} />
+              استيراد Excel
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+            >
+              <Plus size={20} />
+              {t("newLead")}
+            </button>
+          </div>
         )}
       </div>
 
@@ -424,6 +435,11 @@ export default function LeadsPage() {
           </div>
         )}
       </Modal>
+      <LeadImportModal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={() => { setIsImportOpen(false); refetchLeads(); }}
+      />
     </div>
   );
 }
