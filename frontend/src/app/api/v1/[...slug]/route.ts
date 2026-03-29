@@ -563,7 +563,7 @@ export async function POST(
     );
 
     const totalScore = Math.round(scoreFactors.reduce((s, f) => s + (f.weighted_score as number), 0) * 1000) / 10;
-    const grade = totalScore >= 90 ? "AA" : totalScore >= 80 ? "A" : totalScore >= 70 ? "BB" : totalScore >= 60 ? "B" : totalScore >= 50 ? "CC" : totalScore >= 40 ? "C" : "F";
+    const grade = totalScore > 95 ? "AA" : totalScore >= 90 ? "A" : totalScore >= 85 ? "BB" : totalScore >= 80 ? "B" : totalScore >= 75 ? "CC" : totalScore >= 70 ? "C" : "F";
     const recommendation = grade === "AA" ? "approve" : grade === "A" ? "approve" : grade === "BB" ? "approve_with_conditions" : grade === "B" ? "approve_with_conditions" : "decline";
 
     // ── Written report ─────────────────────────────────────────────────

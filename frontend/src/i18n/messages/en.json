@@ -822,13 +822,13 @@
       "decline": "Decline"
     },
     "grades": {
-      "AA": "Minimal Risk",
-      "A": "Low Risk",
-      "BB": "Moderate Risk",
-      "B": "Acceptable Risk",
-      "CC": "Elevated Risk",
+      "AA": "Excellent",
+      "A": "Very Good",
+      "BB": "Good",
+      "B": "Average",
+      "CC": "Below Average",
       "C": "High Risk",
-      "F": "Unacceptable"
+      "F": "Fail"
     },
     "computedRatios": {
       "ocf_ratio": "Operating Cash Flow Ratio",

@@ -90,8 +90,8 @@ interface Organization {
 }
 
 const GRADE_LABEL: Record<string, string> = {
-  AA: "ممتاز جداً", A: "ممتاز مقبول", BB: "جيد جداً",
-  B: "جيد مقبول", CC: "مقبول محدود", C: "ضعيف", F: "غير مقبول",
+  AA: "ممتاز", A: "جيد جداً", BB: "جيد",
+  B: "متوسط", CC: "دون المتوسط", C: "خطر عالٍ", F: "راسب",
 };
 
 const GRADE_COLOR: Record<string, string> = {
