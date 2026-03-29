@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
 const ADMIN_ROLES = ["super_admin", "admin"];
+const RESTORE_ROLES = ["super_admin", "admin", "care_manager"];
 
 interface ArchivedItem extends Record<string, unknown> {
   id: string;
@@ -36,7 +37,8 @@ const typeColor: Record<string, string> = {
 
 export default function ArchivePage() {
   const { user, token } = useAuth();
-  const canPurge = ADMIN_ROLES.includes(user?.role || "");
+  const canPurge   = ADMIN_ROLES.includes(user?.role || "");
+  const canRestore = RESTORE_ROLES.includes(user?.role || "");
   const [purgeItem, setPurgeItem] = useState<ArchivedItem | null>(null);
   const [restoring, setRestoring] = useState<string | null>(null);
 
@@ -111,14 +113,16 @@ export default function ArchivePage() {
                 <span className="text-xs text-stone-400">
                   {new Date(item._archived_at).toLocaleDateString("ar-SA")}
                 </span>
-                <button
-                  onClick={() => handleRestore(item)}
-                  disabled={restoring === item.id}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-teal-700 border border-teal-300 rounded hover:bg-teal-50 transition disabled:opacity-50"
-                >
-                  <RotateCcw size={13} />
-                  {restoring === item.id ? "جارٍ..." : "استرجاع"}
-                </button>
+                {canRestore && (
+                  <button
+                    onClick={() => handleRestore(item)}
+                    disabled={restoring === item.id}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-teal-700 border border-teal-300 rounded hover:bg-teal-50 transition disabled:opacity-50"
+                  >
+                    <RotateCcw size={13} />
+                    {restoring === item.id ? "جارٍ..." : "استرجاع"}
+                  </button>
+                )}
                 {canPurge && (
                   <button
                     onClick={() => setPurgeItem(item)}
