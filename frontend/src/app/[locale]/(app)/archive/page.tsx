@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useApiList, useApiMutation } from "@/lib/use-api";
-import { Trash2, Archive } from "lucide-react";
+import { Trash2, Archive, RotateCcw } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -35,14 +35,31 @@ const typeColor: Record<string, string> = {
 };
 
 export default function ArchivePage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const canPurge = ADMIN_ROLES.includes(user?.role || "");
   const [purgeItem, setPurgeItem] = useState<ArchivedItem | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
 
   const { data: items, isLoading, error, refetch } = useApiList<ArchivedItem>("/archive");
   const { mutate: purge, isSubmitting: isPurging } = useApiMutation<object, void>(
     `/archive/${purgeItem?.id}`, "DELETE"
   );
+
+  const handleRestore = async (item: ArchivedItem) => {
+    setRestoring(item.id);
+    try {
+      await fetch(`/api/v1/archive/${item.id}/restore`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success(`تم استرجاع "${displayName(item)}" بنجاح`);
+      refetch();
+    } catch {
+      toast.error("فشل الاسترجاع");
+    } finally {
+      setRestoring(null);
+    }
+  };
 
   const displayName = (item: ArchivedItem) =>
     item.name_ar || item.name_en || item.company_name || item.contact_name || item.id;
@@ -94,6 +111,14 @@ export default function ArchivePage() {
                 <span className="text-xs text-stone-400">
                   {new Date(item._archived_at).toLocaleDateString("ar-SA")}
                 </span>
+                <button
+                  onClick={() => handleRestore(item)}
+                  disabled={restoring === item.id}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-teal-700 border border-teal-300 rounded hover:bg-teal-50 transition disabled:opacity-50"
+                >
+                  <RotateCcw size={13} />
+                  {restoring === item.id ? "جارٍ..." : "استرجاع"}
+                </button>
                 {canPurge && (
                   <button
                     onClick={() => setPurgeItem(item)}

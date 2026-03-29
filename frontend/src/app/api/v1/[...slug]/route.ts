@@ -372,6 +372,21 @@ export async function POST(
 
   if (!requireAuth(req)) return err("Unauthorized", 401);
 
+  // ARCHIVE RESTORE
+  if (r === "archive" && id && action === "restore") {
+    const archive = await getCol("archive");
+    const idx = archive.findIndex((i) => i.id === id);
+    if (idx === -1) return err("Not found", 404);
+    const item = { ...archive[idx] };
+    const colName = item._type as string;
+    delete item._type; delete item._archived_at; delete item._archived;
+    const col = await getCol(colName);
+    col.push({ ...item, updated_at: now() });
+    archive.splice(idx, 1);
+    await Promise.all([setCol(colName, col), setCol("archive", archive)]);
+    return ok({ message: "restored" });
+  }
+
   // AUTH USERS CREATE
   if (r === "auth" && id === "users" && !action) {
     const body = await req.json().catch(() => ({})) as AnyRecord;
