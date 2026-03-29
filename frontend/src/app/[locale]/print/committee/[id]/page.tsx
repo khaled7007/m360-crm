@@ -55,7 +55,7 @@ export default function CommitteePrintPage({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     async function load() {
-      const token = localStorage.getItem("m360_token") || "";
+      const token = sessionStorage.getItem("m360_token") || "";
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
       try {

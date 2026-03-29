@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { api } from "./api";
 
 type User = {
@@ -16,7 +18,7 @@ type AuthState = {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 };
 
@@ -26,16 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const locale = useLocale();
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try { await fetch("/api/v1/auth/logout"); } catch { /* ignore */ }
+    sessionStorage.removeItem("m360_token");
+    sessionStorage.removeItem("m360_user");
     setToken(null);
     setUser(null);
-    localStorage.removeItem("m360_token");
-    localStorage.removeItem("m360_refresh_token");
-  }, []);
+    router.push(`/${locale}/login`);
+  }, [router, locale]);
 
   const tryRefresh = useCallback(async (): Promise<string | null> => {
-    const refreshToken = localStorage.getItem("m360_refresh_token");
+    const refreshToken = sessionStorage.getItem("m360_refresh_token");
     if (!refreshToken) return null;
 
     try {
@@ -45,17 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       setToken(res.token);
       setUser(res.user);
-      localStorage.setItem("m360_token", res.token);
-      localStorage.setItem("m360_refresh_token", res.refresh_token);
+      sessionStorage.setItem("m360_token", res.token);
+      sessionStorage.setItem("m360_refresh_token", res.refresh_token);
       return res.token;
     } catch {
-      logout();
+      void logout();
       return null;
     }
   }, [logout]);
 
   useEffect(() => {
-    const stored = localStorage.getItem("m360_token");
+    const stored = sessionStorage.getItem("m360_token");
     if (stored) {
       setToken(stored);
       api<User>("/auth/me", { token: stored })
@@ -63,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .catch(async () => {
           const newToken = await tryRefresh();
           if (!newToken) {
-            localStorage.removeItem("m360_token");
+            sessionStorage.removeItem("m360_token");
             setToken(null);
           }
         })
@@ -80,8 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     setToken(res.token);
     setUser(res.user);
-    localStorage.setItem("m360_token", res.token);
-    localStorage.setItem("m360_refresh_token", res.refresh_token);
+    sessionStorage.setItem("m360_token", res.token);
+    sessionStorage.setItem("m360_refresh_token", res.refresh_token);
   };
 
   return (

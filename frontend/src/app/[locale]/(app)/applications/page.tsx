@@ -16,6 +16,7 @@ import { StatusSettingsModal } from "@/components/ui/StatusSettingsModal";
 import { useStatusConfig } from "@/lib/status-config-context";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useUserPermissions } from "@/lib/use-user-permissions";
 import { notifySentToCredit, notifyStatusChange } from "@/lib/notify";
 
 const RE_DOC_TYPES = [
@@ -108,6 +109,10 @@ export default function ApplicationsPage() {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
   const { token } = useAuth();
+  const pagePerms = useUserPermissions("applications");
+  const canCreate = pagePerms.can_create;
+  const canEdit   = pagePerms.can_edit;
+  void canEdit;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusSettingsOpen, setIsStatusSettingsOpen] = useState(false);
@@ -224,7 +229,7 @@ export default function ApplicationsPage() {
 
   const handleSendToCredit = async (item: Application) => {
     try {
-      const tok = localStorage.getItem("m360_token") || "";
+      const tok = sessionStorage.getItem("m360_token") || "";
       await api("/credit-assessments", {
         method: "POST",
         body: { organization_id: item.organization_id, sent_from_application: true },
@@ -352,13 +357,15 @@ export default function ApplicationsPage() {
           >
             <Settings2 size={18} />
           </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-          >
-            <Plus size={20} />
-            {t("newApp")}
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+            >
+              <Plus size={20} />
+              {t("newApp")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -822,7 +829,7 @@ function ApplicationDetails({ application, onStatusChanged, products }: { applic
     if (newStatus === application.status) return;
     setIsChangingStatus(true);
     try {
-      const tok = localStorage.getItem("m360_token") || "";
+      const tok = sessionStorage.getItem("m360_token") || "";
       await api(`/applications/${application.id}`, {
         method: "PUT",
         body: { status: newStatus },

@@ -95,7 +95,7 @@ function PipelineBoard() {
     setStageOverrides((prev) => ({ ...prev, [draggableId]: newStage }));
 
     try {
-      const token = localStorage.getItem("m360_token") || "";
+      const token = sessionStorage.getItem("m360_token") || "";
       await api(`/applications/${draggableId}`, {
         method: "PUT",
         body: { pipeline_stage: newStage },
@@ -114,7 +114,7 @@ function PipelineBoard() {
 
   const handleStatusChange = async (clientId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem("m360_token") || "";
+      const token = sessionStorage.getItem("m360_token") || "";
       await api(`/applications/${clientId}`, {
         method: "PUT",
         body: { status: newStatus },
@@ -128,7 +128,7 @@ function PipelineBoard() {
 
   const handleUpdate = async (updated: Client) => {
     try {
-      const token = localStorage.getItem("m360_token") || "";
+      const token = sessionStorage.getItem("m360_token") || "";
       await api(`/applications/${updated.id}`, {
         method: "PUT",
         body: { purpose: updated.notes },

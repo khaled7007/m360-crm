@@ -49,7 +49,7 @@ export function NotificationPrefsModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("m360_token") ?? "" : "";
+      typeof window !== "undefined" ? sessionStorage.getItem("m360_token") ?? "" : "";
     api("/notification-prefs", { method: "GET", token })
       .then((data) => {
         const rows = data as PrefRow[];
@@ -76,7 +76,7 @@ export function NotificationPrefsModal({ onClose }: { onClose: () => void }) {
     setIsSaving(true);
     try {
       const token =
-        typeof window !== "undefined" ? localStorage.getItem("m360_token") ?? "" : "";
+        typeof window !== "undefined" ? sessionStorage.getItem("m360_token") ?? "" : "";
       await api("/notification-prefs", { method: "PUT", body: { prefs }, token });
       toast.success("تم حفظ إعدادات الإشعارات");
       onClose();

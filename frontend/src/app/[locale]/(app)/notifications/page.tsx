@@ -91,7 +91,7 @@ export default function NotificationsPage() {
       const { api } = await import("@/lib/api");
       const token =
         typeof window !== "undefined"
-          ? localStorage.getItem("m360_token") ?? ""
+          ? sessionStorage.getItem("m360_token") ?? ""
           : "";
       await api(`/notifications/${id}/read`, { method: "PUT", token });
       refetch();

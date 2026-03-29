@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useApiList, useApiMutation } from "@/lib/use-api";
 import { useAuth } from "@/lib/auth-context";
+import { useUserPermissions } from "@/lib/use-user-permissions";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Shield } from "lucide-react";
@@ -116,6 +117,9 @@ export default function UsersPage() {
 
   const { user: currentUser, token } = useAuth();
   const isSuperAdmin = currentUser?.role === "super_admin";
+  const pagePerms = useUserPermissions("users");
+  const canEdit   = isSuperAdmin || pagePerms.can_edit;
+  const canDelete = isSuperAdmin || pagePerms.can_delete;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);

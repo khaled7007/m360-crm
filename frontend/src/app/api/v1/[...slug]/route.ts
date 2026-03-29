@@ -14,7 +14,22 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v13`;
+const INIT_KEY = `${PREFIX}:initialized:v14`;
+
+// ─── Simple rate limiter ────────────────────────────────────────────────────
+const rlMap = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimit(key: string, maxPerMin = 30): boolean {
+  const now = Date.now();
+  const entry = rlMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rlMap.set(key, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= maxPerMin) return false;
+  entry.count++;
+  return true;
+}
 
 type AnyRecord = Record<string, unknown>;
 
@@ -75,19 +90,46 @@ function paginate(items: AnyRecord[], req: NextRequest) {
 }
 function requireAuth(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";
-  return auth.startsWith("Bearer ") && auth.length > 7;
+  if (auth.startsWith("Bearer ") && auth.length > 7) return true;
+  const cookie = req.cookies.get("m360_session");
+  return !!(cookie?.value);
 }
 function tokenForUser(userId: string) { return `mock-jwt-${userId}`; }
 function refreshForUser(userId: string) { return `mock-refresh-${userId}`; }
 function userIdFromToken(req: NextRequest): string | null {
   const auth = req.headers.get("authorization") ?? "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  let token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) token = req.cookies.get("m360_session")?.value ?? "";
   if (token.startsWith("mock-jwt-")) return token.slice(9);
   return null;
+}
+
+function validateCSRF(req: NextRequest): boolean {
+  if (req.method === "GET") return true;
+  const cookieToken = req.cookies.get("csrf_token")?.value ?? "";
+  const headerToken = req.headers.get("x-csrf-token") ?? "";
+  if (!cookieToken && !headerToken) return true;
+  return cookieToken === headerToken && cookieToken.length > 0;
+}
+
+// Validate and sanitize input strings
+function sanitize(obj: AnyRecord, maxLen = 500): AnyRecord {
+  const result: AnyRecord = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === "string") result[k] = v.slice(0, maxLen).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+    else result[k] = v;
+  }
+  return result;
 }
 async function getUserById(id: string): Promise<AnyRecord | null> {
   const users = await getCol("users");
   return users.find((u) => u.id === id) ?? null;
+}
+async function getAuthUserRole(req: NextRequest): Promise<string | null> {
+  const userId = userIdFromToken(req);
+  if (!userId) return null;
+  const u = await getUserById(userId);
+  return (u?.role as string) ?? null;
 }
 async function getUserPassword(userId: string): Promise<string> {
   const stored = await redis.get<string>(`${PREFIX}:pwd:${userId}`);
@@ -130,6 +172,27 @@ export async function GET(
   await init();
   const { slug } = await context.params;
   const [r, id, action] = slug ?? [];
+
+  // CSRF token endpoint (no auth required)
+  if (r === "csrf-token") {
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const response = NextResponse.json({ token });
+    response.cookies.set("csrf_token", token, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60,
+      path: "/",
+    });
+    return response;
+  }
+
+  // Logout endpoint
+  if (r === "auth" && id === "logout") {
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set("m360_session", "", { maxAge: 0, path: "/" });
+    return response;
+  }
 
   if (!requireAuth(req) && !(r === "auth" && id === "me")) {
     return err("Unauthorized", 401);
@@ -388,7 +451,19 @@ export async function POST(
       const correctPwd = await getUserPassword(foundUser.id as string);
       if (body.password === correctPwd) {
         const fid = foundUser.id as string;
-        return ok({ token: tokenForUser(fid), refresh_token: refreshForUser(fid), user: foundUser });
+        const userToken = tokenForUser(fid);
+        const userRefresh = refreshForUser(fid);
+        const { password: _pw, ...safeUser } = foundUser as AnyRecord & { password?: unknown };
+        void _pw;
+        const response = NextResponse.json({ token: userToken, refresh_token: userRefresh, user: safeUser });
+        response.cookies.set("m360_session", userToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 60 * 60 * 24,
+          path: "/",
+        });
+        return response;
       }
     }
     return err("بيانات الدخول غير صحيحة", 401);
@@ -419,6 +494,11 @@ export async function POST(
   }
 
   if (!requireAuth(req)) return err("Unauthorized", 401);
+  if (!validateCSRF(req)) return err("CSRF validation failed", 403);
+
+  // Viewers cannot create anything
+  const postCallerRole = await getAuthUserRole(req);
+  if (postCallerRole === "viewer") return err("Forbidden — read-only account", 403);
 
   // ARCHIVE RESTORE
   if (r === "archive" && id && action === "restore") {
@@ -437,11 +517,18 @@ export async function POST(
 
   // AUTH USERS CREATE
   if (r === "auth" && id === "users" && !action) {
-    const body = await req.json().catch(() => ({})) as AnyRecord;
+    // Only super_admin can create users
+    const createUserRole = await getAuthUserRole(req);
+    if (createUserRole !== "super_admin") return err("Forbidden", 403);
+    const rawBody = await req.json().catch(() => ({})) as AnyRecord;
+    const body = sanitize(rawBody);
+    if (!body.email || typeof body.email !== "string" || !body.email.includes("@")) return err("Invalid email", 400);
+    if (!body.password || typeof body.password !== "string" || (body.password as string).length < 8) return err("Password must be at least 8 characters", 400);
+    if (!body.name_en && !body.name_ar) return err("Name is required", 400);
     const users = await getCol("users");
     const newUser: AnyRecord = { id: uid(), is_active: true, created_at: now(), updated_at: now(), ...body };
     delete newUser.password;
-    if (body.password) await redis.set(`${PREFIX}:pwd:${newUser.id}`, body.password);
+    if (rawBody.password) await redis.set(`${PREFIX}:pwd:${newUser.id}`, rawBody.password);
     users.push(newUser);
     await setCol("users", users);
     return ok(newUser, 201);
@@ -475,6 +562,8 @@ export async function POST(
 
   // COMMITTEE VOTE
   if ((r === "committee" || r === "packages") && action === "vote") {
+    const voteCallerRole = await getAuthUserRole(req);
+    if (!["super_admin", "credit_manager", "credit_officer", "operations_manager"].includes(voteCallerRole ?? "")) return err("Forbidden", 403);
     const body = await req.json().catch(() => ({})) as AnyRecord;
     const committee = await getCol("committee");
     const pkg = committee.find((c) => c.id === id) as AnyRecord & { votes: AnyRecord[]; votes_for: number; votes_against: number; quorum_required: number; status: string; decision_date: string | null };
@@ -706,8 +795,14 @@ export async function POST(
   const colKey = RESOURCE_KEYS[r];
   if (!colKey) return err("Not found", 404);
 
+  // Rate limit for credit-assessments and committee creation
+  if (r === "credit-assessments" || r === "committee" || r === "packages") {
+    const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+    if (!rateLimit(`${ip}:${r}`, 20)) return err("Too many requests", 429);
+  }
+
   const collection = await getCol(colKey);
-  const body = await req.json().catch(() => ({})) as AnyRecord;
+  const body = sanitize(await req.json().catch(() => ({})) as AnyRecord);
   const created: AnyRecord = { id: uid(), ...body, created_at: now(), updated_at: now() };
 
   if (r === "reminders") {
@@ -783,11 +878,14 @@ export async function PUT(
 ) {
   await init();
   if (!requireAuth(req)) return err("Unauthorized", 401);
+  if (!validateCSRF(req)) return err("CSRF validation failed", 403);
   const { slug } = await context.params;
   const [r, id, action] = slug ?? [];
 
-  // AUTH USERS UPDATE
+  // AUTH USERS UPDATE — only super_admin
   if (r === "auth" && id === "users" && action) {
+    const callerRole = await getAuthUserRole(req);
+    if (callerRole !== "super_admin") return err("Forbidden", 403);
     const body = await req.json().catch(() => ({})) as AnyRecord;
     const users = await getCol("users");
     const u = users.find((x) => x.id === action);
@@ -799,6 +897,8 @@ export async function PUT(
 
   // Application status transition
   if (r === "applications" && id && action === "status") {
+    const appStatusRole = await getAuthUserRole(req);
+    if (!["super_admin", "sales_manager", "sales_officer", "operations_manager", "credit_manager", "credit_officer"].includes(appStatusRole ?? "")) return err("Forbidden", 403);
     const body = await req.json().catch(() => ({})) as AnyRecord;
     const applications = await getCol("applications");
     const app = applications.find((a) => a.id === id);
@@ -869,6 +969,12 @@ export async function PUT(
   const colKey = RESOURCE_KEYS[r];
   if (!colKey) return err("Not found", 404);
 
+  // Role enforcement for credit-assessments write
+  if (r === "credit-assessments") {
+    const caRole = await getAuthUserRole(req);
+    if (!["super_admin", "credit_manager", "credit_officer"].includes(caRole ?? "")) return err("Forbidden", 403);
+  }
+
   const collection = await getCol(colKey);
   const item = collection.find((i) => i.id === id);
   if (!item) return err("Not found", 404);
@@ -893,8 +999,14 @@ export async function DELETE(
 ) {
   await init();
   if (!requireAuth(req)) return err("Unauthorized", 401);
+  if (!validateCSRF(req)) return err("CSRF validation failed", 403);
   const { slug } = await context.params;
   const [r, id] = slug ?? [];
+
+  // Role enforcement for delete
+  const deleteCallerRole = await getAuthUserRole(req);
+  const deleteAllowed = ["super_admin", "sales_manager", "care_manager", "operations_manager", "credit_manager"];
+  if (!deleteAllowed.includes(deleteCallerRole ?? "")) return err("Forbidden", 403);
 
   // AUTH USERS DELETE
   if (r === "auth" && id === "users") {

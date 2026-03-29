@@ -12,8 +12,7 @@ import { ReminderButton } from "@/components/ui/ReminderModal";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
-
-const CREATE_ROLES = ["super_admin","admin","sales_manager","operations_manager","care_manager","credit_manager","credit_officer"];
+import { useUserPermissions } from "@/lib/use-user-permissions";
 
 interface Organization {
   id: string;
@@ -49,7 +48,10 @@ export default function ContactsPage() {
   const t = useTranslations("contacts");
   const tc = useTranslations("common");
   const { user } = useAuth();
-  const canCreate = CREATE_ROLES.includes(user?.role || "");
+  const pagePerms = useUserPermissions("contacts");
+  const canCreate = pagePerms.can_create;
+  const canEdit   = pagePerms.can_edit;
+  const canDelete = pagePerms.can_delete;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [page, setPage] = useState({ limit: 20, offset: 0 });
@@ -170,7 +172,7 @@ export default function ContactsPage() {
             entityId={item.id}
             entityName={item.name_en}
           />
-          {canCreate && (
+          {canEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); openEdit(item); }}
               className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition"
@@ -178,7 +180,7 @@ export default function ContactsPage() {
               <Pencil size={14} />
             </button>
           )}
-          {canCreate && (
+          {canDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); setDeleteItem(item); }}
               className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"

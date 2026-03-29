@@ -17,6 +17,12 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  // Attach CSRF token for mutating requests (browser only)
+  if (method !== "GET" && typeof document !== "undefined") {
+    const csrfMatch = document.cookie.match(/csrf_token=([^;]+)/);
+    if (csrfMatch) headers["x-csrf-token"] = csrfMatch[1];
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,

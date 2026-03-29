@@ -13,8 +13,8 @@ import { ReminderButton } from "@/components/ui/ReminderModal";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
+import { useUserPermissions } from "@/lib/use-user-permissions";
 
-const CREATE_ROLES = ["super_admin","admin","sales_manager","operations_manager","care_manager","credit_manager","credit_officer"];
 const CONVERT_ROLES = ["super_admin","admin","sales_manager"];
 
 interface Lead {
@@ -61,8 +61,12 @@ export default function LeadsPage() {
   const t = useTranslations("leads");
   const tc = useTranslations("common");
   const { user, token } = useAuth();
-  const canCreate = CREATE_ROLES.includes(user?.role || "");
+  const pagePerms = useUserPermissions("leads");
+  const canCreate = pagePerms.can_create;
+  const canEdit   = pagePerms.can_edit;
+  const canDelete = pagePerms.can_delete;
   const canConvert = CONVERT_ROLES.includes(user?.role || "");
+  void canEdit;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -194,7 +198,7 @@ export default function LeadsPage() {
             entityId={item.id}
             entityName={item.company_name || item.contact_name}
           />
-          {canCreate && (
+          {canDelete && (
             <button onClick={(e) => { e.stopPropagation(); setDeleteLead(item); }}
               className="p-1.5 text-red-500 hover:bg-red-50 rounded transition">
               <Trash2 size={14} />

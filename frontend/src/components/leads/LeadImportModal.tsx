@@ -136,7 +136,7 @@ export function LeadImportModal({ open, onClose, onImported }: Props) {
 
   const handleImport = async () => {
     if (!rows.length) return;
-    const token = localStorage.getItem("m360_token") || "";
+    const token = sessionStorage.getItem("m360_token") || "";
     setIsImporting(true);
     let success = 0, failed = 0;
     for (const row of rows) {

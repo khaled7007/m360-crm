@@ -54,7 +54,7 @@ export function UserPermissionsModal({
 
   useEffect(() => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("m360_token") ?? "" : "";
+      typeof window !== "undefined" ? sessionStorage.getItem("m360_token") ?? "" : "";
     api(`/user-permissions/${user.id}`, { method: "GET", token })
       .then((data) => {
         const rows = data as PermRow[];
@@ -80,7 +80,7 @@ export function UserPermissionsModal({
     setIsSaving(true);
     try {
       const token =
-        typeof window !== "undefined" ? localStorage.getItem("m360_token") ?? "" : "";
+        typeof window !== "undefined" ? sessionStorage.getItem("m360_token") ?? "" : "";
       await api(`/user-permissions/${user.id}`, {
         method: "PUT",
         body: { permissions: perms },

@@ -181,7 +181,7 @@ export default function PrintCreditAssessmentPage({ params }: { params: Promise<
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("m360_token") || "";
+    const token = sessionStorage.getItem("m360_token") || "";
     Promise.all([
       fetch(`/api/v1/credit-assessments/${id}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
     ]).then(([a]) => {
