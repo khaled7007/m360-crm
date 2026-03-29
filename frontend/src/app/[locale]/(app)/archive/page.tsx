@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
 const ADMIN_ROLES = ["super_admin", "admin"];
-const RESTORE_ROLES = ["super_admin", "admin", "care_manager"];
+const RESTORE_ROLES = ["super_admin", "admin", "care_manager", "sales_manager"];
 
 interface ArchivedItem extends Record<string, unknown> {
   id: string;
