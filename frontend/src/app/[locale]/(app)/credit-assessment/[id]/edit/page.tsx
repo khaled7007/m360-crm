@@ -28,6 +28,7 @@ const locationOptions = ["riyadh", "jeddah", "makkah", "dammam", "khobar", "othe
 const initialFormData = {
   organization_id: "",
   project_name: "",
+  project_brief: "",
   business_activity: "",
   entity_type: "",
   entity_location: "",
@@ -175,6 +176,7 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
       setForm({
         organization_id: (existing.organization_id as string) || "",
         project_name: (existing.project_name as string) || "",
+        project_brief: (existing.project_brief as string) || "",
         business_activity: (existing.business_activity as string) || "",
         entity_type: (existing.entity_type as string) || "",
         entity_location: (existing.entity_location as string) || "",
@@ -310,6 +312,16 @@ export default function EditCreditAssessmentPage({ params }: { params: Promise<{
                 onChange={(e) => set("project_name", e.target.value)}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder={t("fields.project_name")}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">نبذة عن المشروع (إدارة الائتمان)</label>
+              <textarea
+                value={form.project_brief}
+                onChange={(e) => set("project_brief", e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                placeholder="اكتب نبذة مختصرة عن المشروع وأهدافه وأبرز مميزاته..."
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

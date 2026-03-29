@@ -9,12 +9,14 @@ export function Modal({
   title,
   children,
   size = "md",
+  footer,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  footer?: ReactNode;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -100,6 +102,11 @@ export function Modal({
           </button>
         </div>
         <div className="px-6 py-4">{children}</div>
+        {footer && (
+          <div className="flex items-center justify-end gap-3 px-6 py-3 border-t border-stone-200 bg-stone-50 rounded-b-lg">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -78,6 +78,7 @@ interface Assessment {
   murabaha_rate?: number;
   tenor_months?: number;
   repayment_mechanism?: string;
+  project_brief?: string;
 }
 
 interface Organization {
@@ -469,6 +470,16 @@ export default function PrintCreditAssessmentPage({ params }: { params: Promise<
             </>
           )}
         </div>
+
+        {/* ── نبذة عن المشروع ── */}
+        {assessment.project_brief && (
+          <div style={{ padding: "16px 36px", borderBottom: "1px solid #e0e0e0" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#315453", marginBottom: 8 }}>نبذة عن المشروع</div>
+            <div style={{ fontSize: 12, color: "#444", lineHeight: 1.8, background: "#f8f7f5", borderRadius: 6, padding: "10px 14px", border: "1px solid #e8e4df", whiteSpace: "pre-wrap" }}>
+              {assessment.project_brief}
+            </div>
+          </div>
+        )}
 
         {/* ── Score card ── */}
         {score ? (

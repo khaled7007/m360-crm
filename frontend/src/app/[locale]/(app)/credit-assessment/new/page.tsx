@@ -27,6 +27,7 @@ const locationOptions = ["riyadh", "jeddah", "makkah", "dammam", "khobar", "othe
 const initialFormData = {
   organization_id: "",
   project_name: "",
+  project_brief: "",
   business_activity: "",
   entity_type: "",
   entity_location: "",
@@ -66,6 +67,9 @@ const initialFormData = {
   appraisal_1: 0,
   appraisal_2: 0,
   financing_amount: 0,
+  murabaha_rate: 0,
+  tenor_months: 0,
+  repayment_mechanism: "monthly",
 };
 
 type FormData = typeof initialFormData;
@@ -161,15 +165,17 @@ export default function NewCreditAssessmentPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(initialFormData);
+  const [productCategory, setProductCategory] = useState<string>("");
 
-  // Only show orgs that were sent from applications (sent_from_application: true)
-  const { data: allApps } = useApiList<{ organization_id: string; status: string }>("/applications", { limit: 500 });
+  const { data: allApps } = useApiList<{ organization_id: string; status: string; product_id: string; requested_amount: number; tenor_months: number }>("/applications", { limit: 500 });
+  const { data: allProducts } = useApiList<{ id: string; product_category: string }>("/products", { limit: 100 });
   const { data: allOrgs } = useApiList<Organization>("/organizations", { limit: 200 });
-  const sentOrgIds = new Set(
-    allApps.filter((a) => a.status === "credit_assessment").map((a) => a.organization_id)
-  );
+  const sentApps = allApps.filter((a) => a.status === "credit_assessment");
+  const sentOrgIds = new Set(sentApps.map((a) => a.organization_id));
   const orgs = allOrgs.filter((o) => sentOrgIds.has(o.id));
   const { mutate: create, isSubmitting } = useApiMutation<FormData>("/credit-assessments", "POST");
+
+  const isContractorInvoices = productCategory === "contractor_invoices";
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -232,7 +238,17 @@ export default function NewCreditAssessmentPage() {
               </label>
               <select
                 value={form.organization_id}
-                onChange={(e) => set("organization_id", e.target.value)}
+                onChange={(e) => {
+                  const orgId = e.target.value;
+                  set("organization_id", orgId);
+                  const linkedApp = sentApps.find((a) => a.organization_id === orgId);
+                  if (linkedApp) {
+                    const product = allProducts.find((p) => p.id === linkedApp.product_id);
+                    setProductCategory(product?.product_category || "");
+                    if (!form.financing_amount) set("financing_amount", linkedApp.requested_amount || 0);
+                    if (!form.tenor_months) set("tenor_months", linkedApp.tenor_months || 0);
+                  }
+                }}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="">{t("selectOrganization")}</option>
@@ -243,6 +259,11 @@ export default function NewCreditAssessmentPage() {
                 ))}
               </select>
             </div>
+            {productCategory && (
+              <div className={`text-xs font-medium px-3 py-2 rounded-lg ${isContractorInvoices ? "bg-amber-50 text-amber-800 border border-amber-200" : "bg-teal-50 text-teal-800 border border-teal-200"}`}>
+                نوع المنتج: {isContractorInvoices ? "تمويل فواتير المقاولين" : "تمويل التطوير العقاري"}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">
                 {t("fields.project_name")}
@@ -253,6 +274,16 @@ export default function NewCreditAssessmentPage() {
                 onChange={(e) => set("project_name", e.target.value)}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 placeholder={t("fields.project_name")}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">نبذة عن المشروع (إدارة الائتمان)</label>
+              <textarea
+                value={form.project_brief}
+                onChange={(e) => set("project_brief", e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                placeholder="اكتب نبذة مختصرة عن المشروع وأهدافه وأبرز مميزاته..."
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -343,41 +374,94 @@ export default function NewCreditAssessmentPage() {
       case 3:
         return (
           <div className="space-y-4">
+            {isContractorInvoices && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+                تمويل فواتير المقاولين — يُقيَّم المشروع بناءً على جودة العقد وسجل المقاول
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField label={t("fields.project_location")} value={form.project_location} options={locationOpts} onChange={(v) => set("project_location", v)} />
-              <SelectField label={t("fields.project_type")} value={form.project_type} options={opts("project_type", ["commercial", "residential", "mixed"])} onChange={(v) => set("project_type", v)} />
-              <SelectField label={t("fields.engineering_firm_class")} value={form.engineering_firm_class} options={opts("engineering_firm_class", ["class_1_2", "class_3_5", "unclassified", "none"])} onChange={(v) => set("engineering_firm_class", v)} />
-              <SelectField label={t("fields.feasibility_study_quality")} value={form.feasibility_study_quality} options={opts("feasibility_study_quality", ["excellent", "average", "acceptable", "none"])} onChange={(v) => set("feasibility_study_quality", v)} />
-              <SelectField label={t("fields.previous_projects_count")} value={form.previous_projects_count} options={opts("previous_projects_count", ["more_than_3", "1_to_3", "none"])} onChange={(v) => set("previous_projects_count", v)} />
+              {!isContractorInvoices && (
+                <SelectField label={t("fields.project_type")} value={form.project_type} options={opts("project_type", ["commercial", "residential", "mixed"])} onChange={(v) => set("project_type", v)} />
+              )}
+              <SelectField label={isContractorInvoices ? "درجة تصنيف المقاول" : t("fields.engineering_firm_class")} value={form.engineering_firm_class} options={opts("engineering_firm_class", ["class_1_2", "class_3_5", "unclassified", "none"])} onChange={(v) => set("engineering_firm_class", v)} />
+              <SelectField label={isContractorInvoices ? "جودة العقد والمستندات" : t("fields.feasibility_study_quality")} value={form.feasibility_study_quality} options={opts("feasibility_study_quality", ["excellent", "average", "acceptable", "none"])} onChange={(v) => set("feasibility_study_quality", v)} />
+              <SelectField label={isContractorInvoices ? "عدد المشاريع السابقة للمقاول" : t("fields.previous_projects_count")} value={form.previous_projects_count} options={opts("previous_projects_count", ["more_than_3", "1_to_3", "none"])} onChange={(v) => set("previous_projects_count", v)} />
             </div>
-            <CheckboxField label={t("fields.has_project_plan")} checked={form.has_project_plan} onChange={(v) => set("has_project_plan", v)} />
+            <CheckboxField label={isContractorInvoices ? "يوجد عقد موقع ومعتمد" : t("fields.has_project_plan")} checked={form.has_project_plan} onChange={(v) => set("has_project_plan", v)} />
             <CheckboxField label={t("fields.has_insurance")} checked={form.has_insurance} onChange={(v) => set("has_insurance", v)} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <NumberField label={t("fields.project_net_profit")} value={form.project_net_profit} onChange={(v) => set("project_net_profit", v)} />
-              <NumberField label={t("fields.project_total_cost")} value={form.project_total_cost} onChange={(v) => set("project_total_cost", v)} />
+              <NumberField label={isContractorInvoices ? "قيمة الفاتورة / الدفعة (ر.س)" : t("fields.project_net_profit")} value={form.project_net_profit} onChange={(v) => set("project_net_profit", v)} />
+              <NumberField label={isContractorInvoices ? "إجمالي قيمة العقد (ر.س)" : t("fields.project_total_cost")} value={form.project_total_cost} onChange={(v) => set("project_total_cost", v)} />
             </div>
-            <ComputedRatio label={t("computedRatios.project_profitability")} value={ratios.profitability} />
+            <ComputedRatio label={isContractorInvoices ? "نسبة الفاتورة من العقد" : t("computedRatios.project_profitability")} value={ratios.profitability} />
           </div>
         );
 
       case 4:
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SelectField label={t("fields.property_location")} value={form.property_location} options={locationOpts} onChange={(v) => set("property_location", v)} />
-              <SelectField label={t("fields.property_type")} value={form.property_type} options={opts("property_type", ["commercial_building", "residential_building", "residential_land", "commercial_land", "apartment", "raw_land", "agricultural_land", "other"])} onChange={(v) => set("property_type", v)} />
-              <SelectField label={t("fields.property_usage")} value={form.property_usage} options={opts("property_usage", ["rented", "not_applicable", "owner_occupied", "investment"])} onChange={(v) => set("property_usage", v)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <NumberField label={t("fields.appraisal_1")} value={form.appraisal_1} onChange={(v) => set("appraisal_1", v)} />
-              <NumberField label={t("fields.appraisal_2")} value={form.appraisal_2} onChange={(v) => set("appraisal_2", v)} />
-              <NumberField label={t("fields.financing_amount")} value={form.financing_amount} onChange={(v) => set("financing_amount", v)} />
-            </div>
-            <div className="mt-4 border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <ComputedRatio label={t("computedRatios.appraisal_difference")} value={ratios.appraisalDiff} />
-                <ComputedRatio label={t("computedRatios.ltv_ratio")} value={ratios.ltv} />
+            {isContractorInvoices ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+                تمويل فواتير المقاولين لا يتطلب تقييم عقاري — الضمان هو الفاتورة المعتمدة والعقد
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <SelectField label={t("fields.property_location")} value={form.property_location} options={locationOpts} onChange={(v) => set("property_location", v)} />
+                  <SelectField label={t("fields.property_type")} value={form.property_type} options={opts("property_type", ["commercial_building", "residential_building", "residential_land", "commercial_land", "apartment", "raw_land", "agricultural_land", "other"])} onChange={(v) => set("property_type", v)} />
+                  <SelectField label={t("fields.property_usage")} value={form.property_usage} options={opts("property_usage", ["rented", "not_applicable", "owner_occupied", "investment"])} onChange={(v) => set("property_usage", v)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <NumberField label={t("fields.appraisal_1")} value={form.appraisal_1} onChange={(v) => set("appraisal_1", v)} />
+                  <NumberField label={t("fields.appraisal_2")} value={form.appraisal_2} onChange={(v) => set("appraisal_2", v)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <ComputedRatio label={t("computedRatios.appraisal_difference")} value={ratios.appraisalDiff} />
+                  <ComputedRatio label={t("computedRatios.ltv_ratio")} value={ratios.ltv} />
+                </div>
+              </>
+            )}
+            {/* ── شروط التمويل ── */}
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-sm font-semibold text-teal-700">شروط التمويل (المرابحة)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <NumberField label={t("fields.financing_amount")} value={form.financing_amount} onChange={(v) => set("financing_amount", v)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">مدة التمويل (أشهر)</label>
+                  <input type="number" value={form.tenor_months || ""} onChange={(e) => set("tenor_months", parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="36" min="1" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">نسبة المرابحة السنوية (%)</label>
+                  <input type="number" value={form.murabaha_rate || ""} onChange={(e) => set("murabaha_rate", parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="4.5" step="0.1" min="0" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">آلية السداد</label>
+                  <select value={form.repayment_mechanism} onChange={(e) => set("repayment_mechanism", e.target.value)} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+                    <option value="monthly">شهري</option>
+                    <option value="quarterly">ربع سنوي</option>
+                    <option value="semi_annual">نصف سنوي</option>
+                    <option value="annual">سنوي</option>
+                    <option value="balloon">دفعة واحدة نهائية</option>
+                  </select>
+                </div>
+              </div>
+              {form.financing_amount > 0 && form.murabaha_rate > 0 && form.tenor_months > 0 && (() => {
+                const periodsPerYear: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1, balloon: 1 };
+                const ppy = periodsPerYear[form.repayment_mechanism] || 12;
+                const numPayments = form.repayment_mechanism === "balloon" ? 1 : Math.round(form.tenor_months / (12 / ppy));
+                const totalProfit = form.financing_amount * (form.murabaha_rate / 100) * (form.tenor_months / 12);
+                const installment = (form.financing_amount + totalProfit) / numPayments;
+                return (
+                  <div className="bg-stone-50 rounded-lg p-4 grid grid-cols-3 gap-4 text-center">
+                    <div><p className="text-xs text-stone-500">إجمالي الربح</p><p className="text-sm font-bold text-teal-700 mt-1">{totalProfit.toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س</p></div>
+                    <div><p className="text-xs text-stone-500">إجمالي التمويل</p><p className="text-sm font-bold text-stone-800 mt-1">{(form.financing_amount + totalProfit).toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س</p></div>
+                    <div><p className="text-xs text-stone-500">قيمة القسط</p><p className="text-sm font-bold text-indigo-700 mt-1">{installment.toLocaleString("ar-SA", { maximumFractionDigits: 0 })} ر.س</p></div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );

@@ -637,6 +637,17 @@ export default function CommitteePage() {
         onClose={() => setViewAssessmentId(null)}
         title="التقييم الائتماني"
         size="xl"
+        footer={
+          viewAssessmentId ? (
+            <button
+              onClick={() => window.open(`/${locale}/print/credit-assessment/${viewAssessmentId}`, "_blank")}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition"
+            >
+              <Printer size={14} />
+              عرض PDF التقييم
+            </button>
+          ) : undefined
+        }
       >
         {viewAssessmentId && <AssessmentViewer assessmentId={viewAssessmentId} />}
       </Modal>
