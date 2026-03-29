@@ -47,6 +47,10 @@ var validRoles = map[Role]bool{
 	RoleAdmin: true, RoleManager: true, RoleLoanOfficer: true,
 	RoleCreditAnalyst: true, RoleComplianceOfficer: true,
 	RoleCollectionsOfficer: true, RoleDataEntry: true,
+	RoleSuperAdmin: true, RoleCreditManager: true, RoleCreditOfficer: true,
+	RoleOperationsManager: true, RoleOperationsOfficer: true,
+	RoleSalesManager: true, RoleSalesOfficer: true,
+	RoleCareManager: true, RoleViewer: true,
 }
 
 func (h *Handler) CreateUser(c echo.Context) error {

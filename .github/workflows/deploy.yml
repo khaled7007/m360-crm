@@ -38,11 +38,13 @@ jobs:
             if [ ! -f /opt/m360/.env ]; then
               cat > /opt/m360/.env << 'ENVEOF'
             DB_USER=m360
-            DB_PASSWORD=changeme_in_production
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_NAME=m360
-            REDIS_PASSWORD=changeme_in_production
-            JWT_SECRET=changeme_in_production
-            API_URL=http://backend:8080
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            EMAIL_FROM_NAME=ذرى — نظام إدارة التمويل
             ENVEOF
               echo "WARNING: Created default .env — update passwords!"
             fi

@@ -59,7 +59,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:8080}/api/v1
+      BACKEND_URL: http://backend:8080
+      NEXT_PUBLIC_API_URL: /api/v1
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-notifications@tharaco.sa}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ذرى — نظام إدارة التمويل}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
       interval: 10s

@@ -16,6 +16,15 @@ const (
 	RoleComplianceOfficer  Role = "compliance_officer"
 	RoleCollectionsOfficer Role = "collections_officer"
 	RoleDataEntry          Role = "data_entry"
+	RoleSuperAdmin         Role = "super_admin"
+	RoleCreditManager      Role = "credit_manager"
+	RoleCreditOfficer      Role = "credit_officer"
+	RoleOperationsManager  Role = "operations_manager"
+	RoleOperationsOfficer  Role = "operations_officer"
+	RoleSalesManager       Role = "sales_manager"
+	RoleSalesOfficer       Role = "sales_officer"
+	RoleCareManager        Role = "care_manager"
+	RoleViewer             Role = "viewer"
 )
 
 type User struct {
