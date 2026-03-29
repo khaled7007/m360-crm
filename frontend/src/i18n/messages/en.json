@@ -505,7 +505,8 @@
       "credit_analyst": "Credit Analyst",
       "compliance_officer": "Compliance Officer",
       "collections_officer": "Collections Officer",
-      "data_entry": "Data Entry"
+      "data_entry": "Data Entry",
+      "viewer": "View Only"
     },
     "fullNameEn": "Full Name (English)",
     "fullNameAr": "Full Name (Arabic)",
@@ -539,7 +540,8 @@
       "credit_analyst": "Credit Analyst",
       "compliance_officer": "Compliance Officer",
       "collections_officer": "Collections Officer",
-      "data_entry": "Data Entry"
+      "data_entry": "Data Entry",
+      "viewer": "View Only"
     }
   },
   "dashboard": {

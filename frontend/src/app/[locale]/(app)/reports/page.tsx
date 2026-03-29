@@ -226,7 +226,7 @@ export default function ReportsPage() {
   ];
 
   return (
-    <RoleGuard roles={["super_admin", "admin", "credit_manager", "operations_manager", "sales_manager", "care_manager"]}>
+    <RoleGuard roles={["super_admin", "admin", "credit_manager", "operations_manager", "sales_manager", "care_manager", "viewer"]}>
     <div className="space-y-8">
       <PageHeader
         title={t("title")}

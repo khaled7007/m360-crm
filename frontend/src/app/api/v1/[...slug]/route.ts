@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const PREFIX = "m360";
-const INIT_KEY = `${PREFIX}:initialized:v11`;
+const INIT_KEY = `${PREFIX}:initialized:v12`;
 
 type AnyRecord = Record<string, unknown>;
 

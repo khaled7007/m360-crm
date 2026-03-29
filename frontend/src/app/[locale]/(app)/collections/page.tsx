@@ -245,7 +245,7 @@ export default function CollectionsPage() {
   );
 
   return (
-    <RoleGuard roles={["super_admin", "admin", "operations_manager", "operations_officer", "care_manager"]}>
+    <RoleGuard roles={["super_admin", "admin", "operations_manager", "operations_officer", "care_manager", "viewer"]}>
     <div className="space-y-6">
       <PageHeader
         title={t("title")}

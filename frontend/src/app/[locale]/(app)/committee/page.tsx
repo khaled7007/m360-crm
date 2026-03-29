@@ -420,7 +420,7 @@ export default function CommitteePage() {
   ];
 
   return (
-    <RoleGuard roles={["super_admin", "admin", "credit_manager", "credit_officer", "operations_manager"]}>
+    <RoleGuard roles={["super_admin", "admin", "credit_manager", "credit_officer", "operations_manager", "viewer"]}>
     <div className="space-y-6">
       <PageHeader
         title={t("title")}

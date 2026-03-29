@@ -19,6 +19,19 @@ export const USERS = [
   { id: "u-006", email: "malenezi@tharaco.sa",         name_en: "Mansour Al-Enezi",     name_ar: "منصور العنزي",         role: "sales_manager",      is_active: true, created_at: "2025-01-05T00:00:00Z", updated_at: "2025-01-05T00:00:00Z" },
   // ── إدارة العناية بالعميل ──
   { id: "u-007", email: "ralbidah@tharaco.sa",         name_en: "Ruba Al-Bidah",        name_ar: "ربى",                  role: "care_manager",       is_active: true, created_at: "2025-01-06T00:00:00Z", updated_at: "2025-01-06T00:00:00Z" },
+  // ── مستخدمو الاطلاع فقط ──
+  { id: "u-008", email: "naloufi@tharaco.sa",          name_en: "N. Al-Oufi",           name_ar: "العوفي",               role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-009", email: "ralhammadi@tharaco.sa",       name_en: "R. Al-Hammadi",        name_ar: "الحمادي",              role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-010", email: "aalammar@tharaco.sa",         name_en: "A. Al-Ammar",          name_ar: "العمار",               role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-011", email: "ali@tharaco.sa",              name_en: "Ali",                  name_ar: "علي",                  role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-012", email: "aalghamdi@tharaco.sa",        name_en: "A. Al-Ghamdi",         name_ar: "الغامدي",              role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-013", email: "achahtout@tharaco.sa",        name_en: "A. Chahtout",          name_ar: "شحتوت",                role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-014", email: "ealnahidh@tharaco.sa",        name_en: "E. Al-Nahidh",         name_ar: "النهيض",               role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-015", email: "halothman@tharaco.sa",        name_en: "H. Al-Othman",         name_ar: "العثمان",              role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-016", email: "halbaz@tharaco.sa",           name_en: "H. Al-Baz",            name_ar: "الباز",                role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-017", email: "m.aldaij@tharaco.sa",         name_en: "M. Al-Daij",           name_ar: "الدايج",               role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-018", email: "ralahmari@tharaco.sa",        name_en: "R. Al-Ahmari",         name_ar: "الأحمري",              role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { id: "u-019", email: "walabdulkarim@tharaco.sa",    name_en: "W. Al-Abdulkarim",     name_ar: "عبدالكريم",            role: "viewer",             is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
 ];
 
 export const ADMIN_USER = USERS[0];

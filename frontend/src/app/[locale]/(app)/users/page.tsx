@@ -31,7 +31,8 @@ type UserRole =
   | "credit_analyst"
   | "compliance_officer"
   | "collections_officer"
-  | "data_entry";
+  | "data_entry"
+  | "viewer";
 
 interface AppUser extends Record<string, unknown> {
   id: string;
@@ -79,6 +80,7 @@ const roleBadgeColor: Record<UserRole, string> = {
   compliance_officer: "bg-amber-100 text-amber-700",
   collections_officer: "bg-orange-100 text-orange-700",
   data_entry: "bg-stone-100 text-stone-700",
+  viewer: "bg-slate-100 text-slate-600",
 };
 
 function RoleBadge({ role, label }: { role: UserRole; label?: string }) {
@@ -108,6 +110,7 @@ export default function UsersPage() {
     { value: "sales_manager", label: t("roleLabels.sales_manager") },
     { value: "sales_officer", label: t("roleLabels.sales_officer") },
     { value: "care_manager", label: t("roleLabels.care_manager") },
+    { value: "viewer", label: t("roleLabels.viewer") },
   ];
 
   const { user: currentUser, token } = useAuth();
@@ -259,7 +262,7 @@ export default function UsersPage() {
   ];
 
   return (
-    <RoleGuard roles={["super_admin", "admin", "credit_manager", "operations_manager"]}>
+    <RoleGuard roles={["super_admin", "admin", "credit_manager", "operations_manager", "viewer"]}>
     <div>
       <PageHeader
         title={t("title")}
