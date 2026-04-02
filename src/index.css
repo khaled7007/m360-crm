@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Effra Font ────────────────────────────────────────── */
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra_Lt.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra_Rg.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra_Md.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra_Bd.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Base ─────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    direction: rtl;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  body {
+    font-family: 'Effra', 'Tajawal', sans-serif;
+    @apply text-gray-900 bg-white;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  * { box-sizing: border-box; }
+}
+
+/* ─── Components ────────────────────────────────────────── */
+@layer components {
+  /* Primary button — solid blue */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-brand-blue text-white font-semibold
+           px-6 py-3 rounded-md
+           transition-all duration-200 active:scale-[0.97]
+           cursor-pointer no-underline tracking-wide;
+  }
+  .btn-primary:hover {
+    background-color: #2338e0;
+    box-shadow: 0 6px 22px rgba(47,72,245,0.38);
+    @apply no-underline;
+  }
+
+  /* Outline button — white border on dark bg */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-white border border-white/50 font-semibold
+           px-6 py-3 rounded-md
+           transition-all duration-200 active:scale-[0.97]
+           cursor-pointer no-underline tracking-wide;
+  }
+  .btn-outline:hover {
+    @apply border-white text-white bg-white/10 no-underline;
+  }
+
+  /* Light button — white bg, blue border */
+  .btn-light {
+    @apply inline-flex items-center justify-center gap-2
+           bg-white text-brand-blue border border-brand-blue font-semibold
+           px-6 py-3 rounded-md
+           transition-all duration-200 active:scale-[0.97]
+           cursor-pointer no-underline;
+  }
+  .btn-light:hover { @apply bg-blue-50 no-underline; }
+
+  /* Dark button — dark bg, blue border */
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-white border border-brand-blue font-semibold
+           px-6 py-3 rounded-md
+           transition-all duration-200 active:scale-[0.97]
+           cursor-pointer no-underline;
+  }
+  .btn-dark:hover { background-color: rgba(47,72,245,0.12); @apply no-underline; }
+
+  /* Section label */
+  .section-label {
+    @apply text-brand-blue text-xs font-semibold tracking-[0.2em] uppercase;
+  }
+
+  /* Card base */
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-300;
+  }
+  .card:hover {
+    @apply shadow-lg border-brand-blue/15;
+  }
+
+  /* Practice card — blue filled */
+  .practice-card-blue {
+    @apply bg-brand-blue rounded-xl p-7 text-white flex flex-col justify-between min-h-[180px] cursor-default;
+  }
+
+  /* Practice card — light */
+  .practice-card-light {
+    @apply bg-gray-50 rounded-xl p-7 text-gray-800 flex flex-col justify-between min-h-[180px] border border-gray-100;
+  }
+
+  /* Page hero — dark ocean */
+  .page-hero {
+    @apply relative overflow-hidden pt-40 pb-20;
+    background: linear-gradient(145deg, #06081e 0%, #0a0e2e 50%, #080618 100%);
+  }
+}
+
+/* ─── Utilities ─────────────────────────────────────────── */
+@layer utilities {
+  /* Ocean mesh pattern */
+  .ocean-mesh {
+    background-image:
+      linear-gradient(rgba(47,72,245,0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(47,72,245,0.055) 1px, transparent 1px);
+    background-size: 52px 52px;
+  }
+
+  /* Light grid pattern */
+  .light-grid {
+    background-image:
+      linear-gradient(rgba(47,72,245,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(47,72,245,0.06) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #f0f0f5; }
+::-webkit-scrollbar-thumb { background: #2f48f5; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2338e0; }
